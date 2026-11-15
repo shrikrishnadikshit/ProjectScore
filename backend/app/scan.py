@@ -1,0 +1,78 @@
+"""Runs all collectors for an entity, stores findings and a new score."""
+
+from datetime import datetime, timezone
+
+from sqlalchemy import delete, select
+from sqlalchemy.orm import Session
+
+from .collectors import RawFinding, dns_health, email, tls, web
+from .models import Asset, Entity, Finding, Score
+from .scoring import ScoringFinding, compute_score
+
+
+def hosts_for(entity: Entity) -> list[str]:
+    hosts = [entity.primary_domain, f"www.{entity.primary_domain}"]
+    hosts += [a.value for a in entity.assets if a.type == "subdomain" and a.value not in hosts]
+    return hosts
+
+
+def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
+    hosts = hosts_for(entity)
+    email_findings, email_assessed = email.collect(entity.primary_domain)
+    dns_findings, dns_hosts = dns_health.collect(entity.primary_domain, hosts)
+    tls_findings, tls_hosts = tls.collect(hosts)
+    web_findings, web_hosts = web.collect(hosts)
+    coverage = {"email_security": email_assessed, "dns_health": dns_hosts, "tls": tls_hosts,
+                "web_security": web_hosts}
+    # HSTS is a TLS-factor finding observed over HTTPS, so HTTPS hosts count toward TLS coverage.
+    coverage["tls"] = max(tls_hosts, web_hosts)
+    return email_findings + dns_findings + tls_findings + web_findings, coverage
+
+
+class NothingAssessed(Exception):
+    pass
+
+
+def scan_entity(session: Session, entity: Entity, collector=run_collectors) -> Score:
+    raw, coverage = collector(entity)
+    if not any(coverage.values()):
+        raise NothingAssessed(f"no checks could run for {entity.primary_domain}")
+    assessed = {f for f, n in coverage.items() if n > 0}
+    now = datetime.now(timezone.utc)
+
+    # v1: replace open findings with the latest observation; previous ones become remediated.
+    previous = {(f.code, f.asset_value): f for f in session.scalars(
+        select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open"))}
+    seen = set()
+    for r in raw:
+        key = (r.code, r.asset_value)
+        seen.add(key)
+        if key in previous:
+            previous[key].last_seen = now
+            previous[key].evidence = r.evidence
+        else:
+            session.add(Finding(entity_id=entity.id, asset_value=r.asset_value, risk_factor=r.risk_factor,
+                                code=r.code, title=r.title, severity=r.severity,
+                                detection_confidence=r.detection_confidence, evidence=r.evidence,
+                                first_seen=now, last_seen=now))
+    for key, f in previous.items():
+        if key not in seen and f.risk_factor in assessed:
+            f.status = "remediated"
+    for host in hosts_for(entity):
+        if not any(a.value == host for a in entity.assets):
+            session.add(Asset(entity_id=entity.id, type="domain" if host == entity.primary_domain else "subdomain",
+                              value=host))
+    session.flush()
+
+    all_findings = session.scalars(select(Finding).where(Finding.entity_id == entity.id)).all()
+    result = compute_score(
+        [ScoringFinding(risk_factor=f.risk_factor, severity=f.severity, asset_value=f.asset_value, code=f.code,
+                        detection_confidence=f.detection_confidence, status=f.status, last_seen=f.last_seen,
+                        evidence=f.evidence or {}) for f in all_findings],
+        coverage, now=now)
+    result["trace"]["coverage"] = result["coverage"]
+    score = Score(entity_id=entity.id, overall=result["overall"], grade=result["grade"],
+                  model_version=result["model_version"], factors=result["factors"], trace=result["trace"])
+    session.add(score)
+    session.commit()
+    return score
