@@ -109,6 +109,13 @@ administrator's login. That account is created on first start.
   `SECRET_KEY`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and/or `MICROSOFT_CLIENT_ID`/`MICROSOFT_CLIENT_SECRET`/
   `MICROSOFT_ALLOWED_TENANTS`; redirect URI is `{APP_URL}/api/auth/sso/<google|microsoft>/callback`.
 - Incident log (owner) on each company page and `/api/backtest`, to check over time that scores predict incidents.
+- Fix plan on each company page: guidance for every finding type (why it matters, steps, effort, owner),
+  ranked by rating points recovered, with "score after quick fixes" and "after all fixes".
+- Advisory and remediation help: customers click "Get expert help" (fix guidance call, hands-on remediation,
+  vendor follow-up, deeper assessment); the owner replies and tracks status on the Advisory page.
+- CVEs show CVSS base scores (NIST NVD) and EPSS exploit probability (FIRST), fetched in the background after
+  each scan and cached for 14 days. `NVD_API_KEY` (free from NVD) raises the lookup rate. Published-CVE
+  findings are sized by their worst CVSS (9+ high, 7+ medium, otherwise low).
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

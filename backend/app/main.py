@@ -26,6 +26,8 @@ from .risk import router as risk_router
 from .apikeys import router as apikeys_router
 from .sso import router as sso_router
 from .incidents import router as incidents_router
+from .remediation import router as remediation_router
+from .advisory import router as advisory_router
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -237,7 +239,11 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
          "first_seen": f.first_seen.isoformat(), "last_seen": f.last_seen.isoformat()}
         for f in session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open"))
     ]
+    from . import cves as cve_data
     from .patching import summary
+
+    open_findings = session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open")).all()
+    out["cves"] = cve_data.lookup(session, cve_data.cves_in(open_findings))
 
     out["patching"] = summary(session.scalars(select(Finding).where(Finding.entity_id == entity_id)).all())
     return out
@@ -316,6 +322,8 @@ app.include_router(risk_router)
 app.include_router(apikeys_router)
 app.include_router(sso_router)
 app.include_router(incidents_router)
+app.include_router(remediation_router)
+app.include_router(advisory_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

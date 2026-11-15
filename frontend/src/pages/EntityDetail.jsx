@@ -8,6 +8,7 @@ import Insights from '../components/Insights.jsx'
 import Questionnaires from '../components/Questionnaires.jsx'
 import RiskEstimate from '../components/RiskEstimate.jsx'
 import Incidents from '../components/Incidents.jsx'
+import FixPlan from '../components/FixPlan.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -147,6 +148,8 @@ export default function EntityDetail() {
         )}
       </section>
 
+      {latest && <FixPlan entityId={id} version={`${latest.created_at}-${findings.length}`} />}
+
       <section className="card table-card">
         <div className="section-head">
           <h2>Open findings</h2>
@@ -161,7 +164,7 @@ export default function EntityDetail() {
                   <Fragment key={f.id}>
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
-                      <td>{f.title}</td>
+                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} /></td>
                       <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
                       <td className="mono small">{f.asset}</td>
                       <td className="muted small">{new Date(f.first_seen).toLocaleDateString()}</td>
@@ -277,5 +280,31 @@ function DisputeForm({ onSubmit, onCancel }) {
         <button className="btn primary" disabled={busy}>{busy ? 'Sending…' : 'Send dispute'}</button>
       </div>
     </form>
+  )
+}
+
+function cvssClass(score) {
+  return score == null ? 'none' : score >= 9 ? 'critical' : score >= 7 ? 'high' : score >= 4 ? 'medium' : 'low'
+}
+
+function CveList({ ids, info }) {
+  if (!ids?.length) return null
+  const sorted = [...ids].sort((a, b) => (info?.[b]?.cvss ?? -1) - (info?.[a]?.cvss ?? -1))
+  return (
+    <div className="cve-list">
+      {sorted.slice(0, 8).map((id) => {
+        const c = info?.[id]
+        return (
+          <span key={id} className="cve" title={c?.description || ''}>
+            <a href={`https://nvd.nist.gov/vuln/detail/${id}`} target="_blank" rel="noreferrer">{id}</a>
+            {c ? <>
+              <span className={`cvss cvss-${cvssClass(c.cvss)}`} title={c.vector || ''}>CVSS {c.cvss ?? 'n/a'}</span>
+              {c.epss != null && <span className="muted" title="EPSS: chance of exploitation in the next 30 days">EPSS {(c.epss * 100).toFixed(c.epss < 0.01 ? 2 : 0)}%</span>}
+            </> : <span className="muted">score pending</span>}
+          </span>
+        )
+      })}
+      {ids.length > 8 && <span className="muted small">and {ids.length - 8} more</span>}
+    </div>
   )
 }

@@ -302,3 +302,38 @@ class Incident(Base):
     score_before: Mapped[int | None] = mapped_column(Integer)
     recorded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AdvisoryRequest(Base):
+    """A customer's request for expert help fixing findings (an advisory or remediation service lead)."""
+
+    __tablename__ = "advisory_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int | None] = mapped_column(ForeignKey("entities.id", ondelete="SET NULL"))
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    service: Mapped[str] = mapped_column(String(40))  # fix_guidance, remediation_support, vendor_followup, assessment
+    finding_codes: Mapped[list] = mapped_column(JSON, default=list)
+    message: Mapped[str | None] = mapped_column(String(4000))
+    preferred_contact: Mapped[str | None] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20), default="new")  # new, in_progress, done, declined
+    owner_note: Mapped[str | None] = mapped_column(String(4000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class CveInfo(Base):
+    """Cached severity data for a CVE: CVSS from NIST's NVD, EPSS exploit probability from FIRST."""
+
+    __tablename__ = "cve_info"
+
+    cve_id: Mapped[str] = mapped_column(String(30), primary_key=True)
+    cvss: Mapped[float | None] = mapped_column(Float)
+    cvss_version: Mapped[str | None] = mapped_column(String(10))
+    cvss_severity: Mapped[str | None] = mapped_column(String(20))
+    cvss_vector: Mapped[str | None] = mapped_column(String(200))
+    epss: Mapped[float | None] = mapped_column(Float)
+    epss_percentile: Mapped[float | None] = mapped_column(Float)
+    description: Mapped[str | None] = mapped_column(String(1000))
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

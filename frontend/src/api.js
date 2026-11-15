@@ -78,6 +78,11 @@ export const api = {
   ssoProviders: () => request('/auth/sso/providers'),
   listIncidents: (id) => request(`/entities/${id}/incidents`),
   recordIncident: (id, data) => request(`/entities/${id}/incidents`, { method: 'POST', body: JSON.stringify(data) }),
+  remediationPlan: (id) => request(`/entities/${id}/remediation`),
+  advisoryServices: () => request('/advisory/services'),
+  requestAdvisory: (id, data) => request(`/entities/${id}/advisory`, { method: 'POST', body: JSON.stringify(data) }),
+  listAdvisory: () => request('/advisory'),
+  updateAdvisory: (id, status, owner_note) => request(`/advisory/${id}`, { method: 'POST', body: JSON.stringify({ status, owner_note }) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }

@@ -97,7 +97,17 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
     # v1: replace open findings with the latest observation; previous ones become remediated.
     previous = {(f.code, f.asset_value): f for f in session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open"))}
+    from . import cves as cve_data
     from .patching import slow_patch_findings
+
+    # Size "published CVE" findings by the worst CVSS score we already know for them.
+    known = cve_data.lookup(session, cve_data.cves_in(raw))
+    for r in raw:
+        if r.code == "known_cves":
+            scores = [known[c]["cvss"] for c in (r.evidence or {}).get("cves", []) if c in known and known[c]["cvss"] is not None]
+            if scores:
+                r.severity = cve_data.severity_for(max(scores), r.severity)
+                r.evidence = {**r.evidence, "max_cvss": max(scores)}
 
     raw += slow_patch_findings(list(previous.values()), {(r.code, r.asset_value) for r in raw}, now)
     seen = set()
@@ -154,6 +164,10 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
                   model_version=result["model_version"], factors=result["factors"], trace=result["trace"])
     session.add(score)
     session.commit()
+    from . import cves as cve_data
+
+    cve_data.enrich_async(cve_data.cves_in(session.scalars(
+        select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open")).all()))
     try:
         from .alerts import notify
 
