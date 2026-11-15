@@ -48,6 +48,7 @@ FRAMEWORKS: dict[str, dict] = {
         "Patch and vulnerability management": "Patch, vulnerability and change management",
         "Secure mail and messaging": "Secure mail and messaging systems",
         "Incident response and management": "Incident response and management",
+        "Anti-phishing": "Anti-phishing",
     }},
     "sebi": {"name": "SEBI CSCRF (2024)", "controls": {
         "Identify: risk assessment": "Identify: risk assessment and vulnerability management",
@@ -76,6 +77,10 @@ FACTOR_CONTROLS: dict[str, dict[str, list[str]]] = {
     "compromise": {"nist_csf": ["DE.CM-01", "RS.MA-01"], "iso27001": ["A.5.7", "A.8.7", "A.5.26"],
                    "cert_in": ["Incident reporting"], "rbi": ["Incident response and management"],
                    "sebi": ["Detect: continuous monitoring", "Respond: incident management"]},
+    "brand": {"nist_csf": ["DE.CM-01"], "iso27001": ["A.5.7"], "rbi": ["Anti-phishing"],
+              "sebi": ["Detect: continuous monitoring"]},
+    "breach_history": {"nist_csf": ["RS.MA-01"], "iso27001": ["A.5.26"], "cert_in": ["Incident reporting"],
+                       "rbi": ["Incident response and management"], "sebi": ["Respond: incident management"]},
 }
 
 SEVERITIES = ["critical", "high", "medium", "low", "info"]

@@ -5,6 +5,7 @@ os.environ["COOKIE_SECURE"] = "false"
 os.environ["SCHEDULER_ENABLED"] = "false"
 os.environ["EXPOSURE_SOURCE"] = "off"
 os.environ["COMPROMISE_FEEDS"] = "off"
+os.environ["BREACH_FEED"] = "off"
 
 import pytest  # noqa: E402
 

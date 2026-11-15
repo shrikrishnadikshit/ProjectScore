@@ -78,9 +78,22 @@ def factor_grade_for(score: float) -> str:
 
 
 def decay(finding: ScoringFinding, now: datetime) -> float:
-    if finding.status == "open" or finding.last_seen is None:
+    # Historical events (such as a breach) decay from the date they happened, even while still listed.
+    event = (finding.evidence or {}).get("event_date")
+    if event:
+        try:
+            last_seen = datetime.fromisoformat(event)
+        except ValueError:
+            last_seen = None
+        if last_seen is not None and last_seen.tzinfo is None:
+            last_seen = last_seen.replace(tzinfo=timezone.utc)
+    elif finding.status == "open" or finding.last_seen is None:
         return 1.0
-    last_seen = finding.last_seen if finding.last_seen.tzinfo else finding.last_seen.replace(tzinfo=timezone.utc)
+    else:
+        last_seen = finding.last_seen
+    if last_seen is None:
+        return 1.0
+    last_seen = last_seen if last_seen.tzinfo else last_seen.replace(tzinfo=timezone.utc)
     days = max((now - last_seen).total_seconds() / 86400, 0.0)
     half_life = HALF_LIFE_DAYS.get(finding.risk_factor, DEFAULT_HALF_LIFE_DAYS)
     return 0.5 ** (days / half_life)

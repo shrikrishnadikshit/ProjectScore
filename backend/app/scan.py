@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .collectors import RawFinding, compromise, discovery, dns_health, email, network, tls, web
+from .collectors import RawFinding, breaches, compromise, discovery, dns_health, email, lookalike, network, tls, web
 from .models import Asset, Entity, Finding, Score
 from .scoring import ScoringFinding, compute_score
 
@@ -50,14 +50,17 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     ips.update({v: False for t, v in net_assets if t == "ip"})
     ips = {ip: any(ipaddress.ip_address(ip) in n for n in owned_nets) for ip in ips}
     comp_findings, comp_checked = compromise.collect(hosts, ips, entity.primary_domain)
+    brand_findings, brand_checked = lookalike.collect(entity.primary_domain)
+    breach_findings, breach_checked = breaches.collect(entity.primary_domain)
     coverage = {"email_security": email_assessed, "dns_health": dns_hosts, "tls": tls_hosts,
                 "web_security": web_hosts,
                 "vulnerability": versioned_hosts + net_coverage.get("vulnerability", 0),
                 "network_exposure": net_coverage.get("network_exposure", 0),
-                "compromise": comp_checked}
+                "compromise": comp_checked, "brand": brand_checked,
+                "breach_history": breach_checked}
     # HSTS is a TLS-factor finding observed over HTTPS, so HTTPS hosts count toward TLS coverage.
     coverage["tls"] = max(tls_hosts, web_hosts)
-    return email_findings + dns_findings + tls_findings + web_findings + net_findings + comp_findings, coverage
+    return email_findings + dns_findings + tls_findings + web_findings + net_findings + comp_findings + brand_findings + breach_findings, coverage
 
 
 # Finding codes produced by rules that were later found to be wrong. Existing findings with these
