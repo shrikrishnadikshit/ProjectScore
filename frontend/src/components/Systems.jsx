@@ -26,7 +26,7 @@ export default function Systems({ entityId, version }) {
       <div className="stats pad" style={{ paddingTop: 0 }}>
         <div><div className="stat">{d.counts.high}</div><div className="muted small">high-value systems</div></div>
         <div><div className="stat">{d.priorities['1']}</div><div className="muted small">top-priority (P1) issues</div></div>
-        <div><div className="stat">{h.located ? `${h.outside_india} of ${h.located}` : '—'}</div><div className="muted small">systems hosted outside India</div></div>
+        <div><div className="stat">{h.located ? `${h.outside_home} of ${h.located}` : '—'}</div><div className="muted small">systems hosted outside {country(h.home_country)}</div></div>
       </div>
       {h.high_risk.length > 0 && <div className="banner error" style={{ margin: '0 20px 12px' }}>{h.high_risk.length} system(s) hosted in high-risk countries: {h.countries.filter((c) => c.high_risk).map((c) => c.name).join(', ')}.</div>}
       <div className="pad" style={{ display: 'flex', gap: 24, flexWrap: 'wrap', paddingTop: 0 }}>

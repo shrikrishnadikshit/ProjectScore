@@ -1,3 +1,4 @@
+import PublicFooter from '../components/PublicFooter.jsx'
 import { useState } from 'react'
 import { api } from '../api.js'
 
@@ -75,6 +76,7 @@ export default function Scanner() {
       </section>
 
       <PublicDispute />
+      <PublicFooter />
     </div>
   )
 }

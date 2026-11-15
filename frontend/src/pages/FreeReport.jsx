@@ -1,3 +1,4 @@
+import PublicFooter from '../components/PublicFooter.jsx'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api, FACTOR_LABELS } from '../api.js'
@@ -20,6 +21,7 @@ export default function FreeReport() {
       <Brand />
       <h1>Free security rating for your organisation</h1>
       {token ? <Report token={token} /> : <RequestForm onToken={(t) => setParams({ r: t })} />}
+      <PublicFooter />
     </div>
   )
 }

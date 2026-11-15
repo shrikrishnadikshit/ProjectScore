@@ -1,3 +1,4 @@
+import PublicFooter from './PublicFooter.jsx'
 import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { api, setUnauthorizedHandler } from '../api.js'
@@ -46,6 +47,7 @@ export default function Layout() {
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/in-depth">In-depth scans</NavLink>}
           <NavLink to="/code-reviews">Code reviews</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
+          <NavLink to="/settings">Settings</NavLink>
           {user.role === 'owner' && <NavLink to="/disputes">Disputes</NavLink>}
           {user.role === 'owner' && <NavLink to="/leads">Leads</NavLink>}
           {user.role === 'owner' && <NavLink to="/opt-outs">Opt-outs</NavLink>}
@@ -58,6 +60,7 @@ export default function Layout() {
       <main className="content">
         <Outlet context={{ user, refreshAlerts }} />
       </main>
+      <div className="app-footer"><PublicFooter /></div>
     </div>
   )
 }

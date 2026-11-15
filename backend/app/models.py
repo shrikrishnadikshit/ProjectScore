@@ -438,3 +438,16 @@ class RiskPolicy(Base):
     org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True)
     rules: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OrgSettings(Base):
+    """Per-organisation preferences: home country, display currency and local breach cost."""
+
+    __tablename__ = "org_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True)
+    country: Mapped[str] = mapped_column(String(2), default="IN")
+    currency: Mapped[str] = mapped_column(String(3), default="INR")
+    breach_cost_usd_m: Mapped[float | None] = mapped_column(Float)  # override, in millions of US dollars
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

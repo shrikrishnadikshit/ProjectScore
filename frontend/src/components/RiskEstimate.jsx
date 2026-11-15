@@ -6,17 +6,26 @@ const fmtInr = (rupees) => {
   return crore >= 1 ? `₹${crore.toLocaleString('en-IN', { maximumFractionDigits: 1 })} crore`
     : `₹${(crore * 100).toLocaleString('en-IN', { maximumFractionDigits: 1 })} lakh`
 }
-const fmtFx = (amount, currency) => new Intl.NumberFormat(currency === 'EUR' ? 'en-IE' : 'en-US',
-  { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount)
+const LOCALE = { EUR: 'en-IE', GBP: 'en-GB', AUD: 'en-AU', SGD: 'en-SG', JPY: 'ja-JP', CAD: 'en-CA', CHF: 'de-CH', AED: 'en-AE', SAR: 'en-SA' }
+const fmtFx = (amount, currency) => new Intl.NumberFormat(LOCALE[currency] || 'en-US',
+  { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount ?? 0)
 const money = (values, currency) => currency === 'INR' ? fmtInr(values.INR) : fmtFx(values[currency], currency)
 const convertShare = (r, k) => {
   const crore = r.fair.by_scenario[k]
-  return { INR: crore * 1e7, USD: crore * 1e7 / r.exchange_rates.USD, EUR: crore * 1e7 / r.exchange_rates.EUR }
+  const out = { INR: crore * 1e7 }
+  for (const [c, rate] of Object.entries(r.exchange_rates)) if (typeof rate === 'number' && rate > 0) out[c] = crore * 1e7 / rate
+  return out
 }
-const CURRENCIES = [['INR', '₹ INR'], ['USD', '$ USD'], ['EUR', '€ EUR']]
+const convertCrore = (r, crore) => {
+  const out = { INR: crore * 1e7 }
+  for (const [c, rate] of Object.entries(r.exchange_rates)) if (typeof rate === 'number' && rate > 0) out[c] = crore * 1e7 / rate
+  return out
+}
+const CURRENCIES = [['INR', '₹ INR'], ['USD', '$ USD'], ['EUR', '€ EUR'], ['GBP', '£ GBP'], ['AUD', 'A$ AUD'], ['SGD', 'S$ SGD'],
+  ['AED', 'AED'], ['SAR', 'SAR'], ['JPY', '¥ JPY'], ['CAD', 'C$ CAD'], ['CHF', 'CHF']]
 
 function savedCurrency() {
-  try { return localStorage.getItem('ps-currency') || 'INR' } catch { return 'INR' }
+  try { return localStorage.getItem('ps-currency') } catch { return null }
 }
 
 export default function RiskEstimate({ entityId, version }) {
@@ -24,7 +33,9 @@ export default function RiskEstimate({ entityId, version }) {
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
   const [show, setShow] = useState(false)
-  const [cur, setCur] = useState(savedCurrency)
+  const [picked, setCur] = useState(savedCurrency)
+  const cur = picked || r?.default_currency || 'INR'
+  const rate = cur === 'INR' ? 1 : r?.exchange_rates?.[cur]
   const pick = (c) => { setCur(c); try { localStorage.setItem('ps-currency', c) } catch { /* private mode */ } }
   useEffect(() => { api.getRisk(entityId).then(setR).catch(() => setR(null)) }, [entityId, version])
   if (!r?.expected_loss_crore && r?.expected_loss_crore !== 0) return null
@@ -33,7 +44,9 @@ export default function RiskEstimate({ entityId, version }) {
     e.preventDefault()
     setError(null)
     try {
-      setR(await api.setRisk(entityId, { revenue_crore: form.revenue ? Number(form.revenue) : null, sensitivity: form.sensitivity }))
+      const revenue = form.revenue ? Number(form.revenue) : null
+      const crore = revenue == null ? null : cur === 'INR' ? revenue : revenue * 1e6 * rate / 1e7
+      setR(await api.setRisk(entityId, { revenue_crore: crore, sensitivity: form.sensitivity }))
       setForm(null)
     } catch (err) { setError(err.message) }
   }
@@ -43,10 +56,10 @@ export default function RiskEstimate({ entityId, version }) {
       <div className="section-head">
         <h2>Estimated cyber risk</h2>
         <div className="row-actions">
-          <div className="tabs" role="group" aria-label="Currency" style={{ margin: 0 }}>
-            {CURRENCIES.map(([c, label]) => <button key={c} className={`tab ${cur === c ? 'active' : ''}`} aria-pressed={cur === c} onClick={() => pick(c)}>{label}</button>)}
-          </div>
-          {!form && <button className="btn ghost tiny" onClick={() => setForm({ revenue: r.revenue_crore ?? '', sensitivity: r.sensitivity })}>Edit inputs</button>}
+          <select aria-label="Currency" value={cur} onChange={(e) => pick(e.target.value)}>
+            {CURRENCIES.filter(([c]) => c === 'INR' || r.exchange_rates[c]).map(([c, label]) => <option key={c} value={c}>{label}</option>)}
+          </select>
+          {!form && <button className="btn ghost tiny" onClick={() => setForm({ revenue: r.revenue_crore != null ? (cur === 'INR' ? r.revenue_crore : +(r.revenue_crore * 1e7 / rate / 1e6).toFixed(1)) : '', sensitivity: r.sensitivity })}>Edit inputs</button>}
         </div>
       </div>
       <div className="stats">
@@ -79,7 +92,7 @@ export default function RiskEstimate({ entityId, version }) {
       {form && (
         <form className="form" onSubmit={save} style={{ maxWidth: 'none' }}>
           <div className="form-row">
-            <label>Annual revenue (₹ crore)<input type="number" min="0" step="any" value={form.revenue} onChange={(e) => setForm({ ...form, revenue: e.target.value })} placeholder="Leave blank if unknown" /></label>
+            <label>{cur === 'INR' ? 'Annual revenue (₹ crore)' : `Annual revenue (millions of ${cur})`}<input type="number" min="0" step="any" value={form.revenue} onChange={(e) => setForm({ ...form, revenue: e.target.value })} placeholder="Leave blank if unknown" /></label>
             <label>Sensitivity of data they hold for you
               <select value={form.sensitivity} onChange={(e) => setForm({ ...form, sensitivity: e.target.value })}>
                 <option value="low">Low (no personal or financial data)</option>
@@ -93,15 +106,14 @@ export default function RiskEstimate({ entityId, version }) {
         </form>
       )}
       <p className="muted small">
-        {r.revenue_crore ? `Based on annual revenue of ₹${r.revenue_crore.toLocaleString('en-IN')} crore. ` : 'Add annual revenue for a size-adjusted estimate. '}
-        Expected loss: {fmtInr(r.currencies.expected_loss.INR)} · {fmtFx(r.currencies.expected_loss.USD, 'USD')} · {fmtFx(r.currencies.expected_loss.EUR, 'EUR')}.{' '}
+        {r.revenue_crore ? `Based on annual revenue of ${money(convertCrore(r, r.revenue_crore), cur)}. ` : 'Add annual revenue for a size-adjusted estimate. '}
         An illustrative planning estimate, not an insurance figure. <button className="link-btn" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'} assumptions</button>
       </p>
       {show && (
         <ul className="small muted">
-          <li>Average breach cost in India: ₹{r.assumptions.breach_cost_crore} crore ({r.assumptions.breach_cost_source}).</li>
+          <li>Average cost of a breach: {money(r.assumptions.breach_cost, cur)} ({r.assumptions.breach_cost_source}). Admins can change the country or this figure in Settings.</li>
           <li>Chance of a breach is {r.assumptions.base_probability_at_700 * 100}% a year at a score of 700, multiplying by about 2.7 for every 250 points lower and falling for higher scores.</li>
-          <li>Exchange rates: ₹{r.exchange_rates.USD} per US dollar and ₹{r.exchange_rates.EUR} per euro ({r.exchange_rates.source}{r.exchange_rates.date ? `, ${r.exchange_rates.date}` : ''}).</li>
+          <li>Exchange rates: ₹{r.exchange_rates.USD} per US dollar and ₹{r.exchange_rates.EUR} per euro, with other currencies from the same source ({r.exchange_rates.source}{r.exchange_rates.date ? `, ${r.exchange_rates.date}` : ''}; AED and SAR at their fixed US dollar pegs).</li>
           {r.fair && <li>FAIR simulation: breach events per year drawn between {r.fair.assumptions.breach_events_per_year[0]} and {r.fair.assumptions.breach_events_per_year[2]} (most likely {r.fair.assumptions.breach_events_per_year[1]}); each loss {r.fair.assumptions.breach_loss_multiples[0]}× to {r.fair.assumptions.breach_loss_multiples[2]}× the likely cost, plus fines and lawsuits in {r.fair.assumptions.secondary_loss_chance * 100}% of breaches; ransomware {r.fair.assumptions.ransomware_attacks_per_year} attacks a year on average, each {r.fair.assumptions.ransomware_loss_multiples[0]}× to {r.fair.assumptions.ransomware_loss_multiples[2]}×.</li>}
           <li>Cost scales with company size as {r.assumptions.size_scaling}, times {r.assumptions.sensitivity_multiplier} for data sensitivity. The range is half to double the central estimate.</li>
         </ul>

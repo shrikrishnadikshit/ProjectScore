@@ -26,7 +26,14 @@ router = APIRouter(prefix="/api")
 # Rupees per US dollar and per euro. Fetched daily from the European Central Bank reference rates
 # (via frankfurter.dev, free, no key); these fallbacks are used if the feed cannot be reached.
 FALLBACK_RATES = {"USD": float(os.environ.get("RISK_USD_INR", "88.0")),
-                  "EUR": float(os.environ.get("RISK_EUR_INR", "102.0"))}
+                  "EUR": float(os.environ.get("RISK_EUR_INR", "102.0")),
+                  "GBP": 117.0, "AUD": 58.0, "SGD": 68.0, "JPY": 0.58, "CAD": 63.0, "CHF": 110.0}
+ECB_SYMBOLS = ("USD", "EUR", "GBP", "AUD", "SGD", "JPY", "CAD", "CHF")
+USD_PEGS = {"AED": 3.6725, "SAR": 3.75}  # fixed pegs to the US dollar
+
+
+def _with_pegs(rates: dict) -> dict:
+    return {**rates, **{c: round(rates["USD"] / peg, 4) for c, peg in USD_PEGS.items()}}
 _rates_lock = threading.Lock()
 _rates: dict = {"loaded": 0.0, "rates": None, "date": None}
 
@@ -37,23 +44,28 @@ def inr_rates() -> dict:
         if time.time() - _rates["loaded"] < 12 * 3600 and _rates["rates"]:
             return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
         try:
-            resp = httpx.get("https://api.frankfurter.dev/v1/latest", params={"base": "INR", "symbols": "USD,EUR"},
+            resp = httpx.get("https://api.frankfurter.dev/v1/latest", params={"base": "INR", "symbols": ",".join(ECB_SYMBOLS)},
                              timeout=10.0, follow_redirects=True)
             resp.raise_for_status()
             data = resp.json()
-            _rates["rates"] = {k: round(1 / v, 4) for k, v in data["rates"].items() if k in ("USD", "EUR") and v}
+            fetched = {k: round(1 / v, 4) for k, v in data["rates"].items() if k in ECB_SYMBOLS and v}
+            _rates["rates"] = _with_pegs({**FALLBACK_RATES, **fetched})
             _rates["date"], _rates["loaded"] = data.get("date"), time.time()
             return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
         except (httpx.HTTPError, ValueError, KeyError, ZeroDivisionError):
             _rates["loaded"] = time.time() - 12 * 3600 + 900  # retry in 15 minutes
             if _rates["rates"]:
                 return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
-            return {**FALLBACK_RATES, "date": None, "source": "fixed fallback rate"}
+            return {**_with_pegs(FALLBACK_RATES), "date": None, "source": "fixed fallback rate"}
 
 
 def convert(crore: float, rates: dict) -> dict:
     rupees = crore * 1e7
-    return {"INR": round(rupees), "USD": round(rupees / rates["USD"]), "EUR": round(rupees / rates["EUR"])}
+    out = {"INR": round(rupees)}
+    for code in (*ECB_SYMBOLS, *USD_PEGS):
+        if rates.get(code):
+            out[code] = round(rupees / rates[code])
+    return out
 
 # Average total cost of a data breach in India, in crore rupees (IBM Cost of a Data Breach Report 2024:
 # INR 195 million). Override with RISK_BREACH_COST_CRORE when a newer figure is published.
@@ -69,15 +81,17 @@ def probability(score: int) -> float:
     return min(0.6, max(0.005, BASE_PROBABILITY * math.exp((700 - score) / 250)))
 
 
-def estimate(score: int, revenue_crore: float | None, sensitivity: str = "standard") -> dict:
+def estimate(score: int, revenue_crore: float | None, sensitivity: str = "standard",
+             breach_cost_crore: float | None = None, breach_cost_source: str | None = None) -> dict:
+    base_cost = breach_cost_crore or BREACH_COST_CRORE
     size = 1.0 if not revenue_crore else min(6.0, max(0.15, (revenue_crore / REFERENCE_REVENUE_CRORE) ** 0.4))
-    impact = BREACH_COST_CRORE * size * SENSITIVITY.get(sensitivity, 1.0)
+    impact = base_cost * size * SENSITIVITY.get(sensitivity, 1.0)
     p = probability(score)
     expected = p * impact
     return {"probability": round(p, 4), "impact_crore": round(impact, 2), "expected_loss_crore": round(expected, 2),
             "range_crore": [round(expected * 0.5, 2), round(expected * 2, 2)],
-            "assumptions": {"breach_cost_crore": BREACH_COST_CRORE,
-                            "breach_cost_source": "IBM Cost of a Data Breach Report 2024, India average",
+            "assumptions": {"breach_cost_crore": round(base_cost, 2),
+                            "breach_cost_source": breach_cost_source or "IBM Cost of a Data Breach Report 2024, India average",
                             "base_probability_at_700": BASE_PROBABILITY,
                             "size_scaling": f"(revenue / {REFERENCE_REVENUE_CRORE:.0f} crore) ^ 0.4",
                             "sensitivity_multiplier": SENSITIVITY.get(sensitivity, 1.0)}}
@@ -170,8 +184,15 @@ def _result(session: Session, user: User, entity_id: int) -> dict:
     revenue, sens = (inp.revenue_crore, inp.sensitivity) if inp else (None, "standard")
     out = {"revenue_crore": revenue, "sensitivity": sens}
     if latest:
-        est = estimate(latest.overall, revenue, sens)
+        from .orgsettings import settings_for
+
         rates = inr_rates()
+        org = settings_for(session, user.org_id)
+        cost_crore = org["breach_cost_usd_m"] * 1e6 * rates["USD"] / 1e7
+        est = estimate(latest.overall, revenue, sens, cost_crore, org["breach_cost_source"])
+        est["assumptions"]["breach_cost"] = convert(cost_crore, rates)
+        est["assumptions"]["breach_cost_usd_m"] = org["breach_cost_usd_m"]
+        est["default_currency"], est["home_country"] = org["currency"], org["country"]
         est["currencies"] = {
             "expected_loss": convert(est["expected_loss_crore"], rates),
             "range": [convert(v, rates) for v in est["range_crore"]],

@@ -29,7 +29,7 @@ from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
 from .attack import techniques as attack_techniques
-from . import assets, certificates, policy, codereview, ransomware, threatevents, vendors, vendorshare
+from . import account, assets, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -422,6 +422,8 @@ app.include_router(threatevents.router)
 app.include_router(certificates.router)
 app.include_router(assets.router)
 app.include_router(policy.router)
+app.include_router(orgsettings.router)
+app.include_router(account.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

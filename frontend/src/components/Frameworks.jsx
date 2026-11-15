@@ -10,11 +10,14 @@ const STATUS = {
 
 export default function Frameworks({ entityId, version }) {
   const [data, setData] = useState(null)
-  const [active, setActive] = useState('nist_csf')
+  const [active, setActive] = useState(null)
   const [open, setOpen] = useState(null)
+  const [showAll, setShowAll] = useState(false)
   useEffect(() => { api.entityFrameworks(entityId).then(setData).catch(() => setData([])) }, [entityId, version])
   if (!data?.length) return null
-  const fw = data.find((f) => f.key === active) ?? data[0]
+  const visible = showAll ? data : data.filter((f) => f.preferred !== false)
+  const fw = data.find((f) => f.key === active) ?? visible[0] ?? data[0]
+  const regions = [...new Set(data.map((f) => f.region_name))]
   const flagged = fw.controls.filter((c) => c.status === 'issues').length
 
   return (
@@ -23,11 +26,15 @@ export default function Frameworks({ entityId, version }) {
         <h2>Framework mapping</h2>
         <span className="muted small">{flagged} of {fw.controls.length} controls with issues</span>
       </div>
-      <div className="tabs" role="tablist">
-        {data.map((f) => (
-          <button key={f.key} role="tab" aria-selected={f.key === fw.key} className={`tab ${f.key === fw.key ? 'active' : ''}`}
-            onClick={() => { setActive(f.key); setOpen(null) }}>{f.name}</button>
-        ))}
+      <div className="row-actions" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
+        <select value={fw.key} onChange={(e) => { setActive(e.target.value); setOpen(null) }} aria-label="Framework">
+          {(showAll ? regions : [...new Set(visible.map((f) => f.region_name))]).map((r) => (
+            <optgroup key={r} label={r}>
+              {visible.filter((f) => f.region_name === r).map((f) => <option key={f.key} value={f.key}>{f.name}</option>)}
+            </optgroup>
+          ))}
+        </select>
+        <label className="check small"><input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />Show frameworks for all countries ({data.length})</label>
       </div>
       <div className="fw-list">
         {fw.controls.map((c) => {

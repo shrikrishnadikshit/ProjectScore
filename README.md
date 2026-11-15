@@ -140,6 +140,16 @@ administrator's login. That account is created on first start.
 - Vendor policy per tier (minimum score, critical and P1 issue limits, ransomware ceiling, required
   certificate, no high-risk hosting, rating age); the Policy page lists every vendor that falls short.
 - Governance checks: security.txt and a privacy policy link on the home page.
+- Global use: organisation settings for home country, default currency (INR, USD, EUR, GBP, AUD, SGD, AED,
+  SAR, JPY, CAD, CHF) and local breach cost (IBM 2024 country averages, overridable); "hosted outside your
+  country"; sales blocked for comprehensively sanctioned countries.
+- Framework mapping extended to CIS Controls v8, SOC 2, PCI DSS v4.0, EU NIS2, DORA and GDPR, UK Cyber Essentials,
+  HIPAA, NYDFS 500, US SEC disclosure rules, APRA CPS 234, MAS TRM, Saudi NCA ECC and UAE IA, with the ones for
+  the organisation's country shown first.
+- Public pages: /methodology (factors, weights, scoring, data sources, fair-rating principles) and draft
+  /terms, /privacy and /dpa (texts in frontend/src/legal.js; replace placeholders and have them reviewed, then
+  set LEGAL_DRAFT to false).
+- Privacy rights for users: download my data (JSON) and delete my account on the Account page.
 - Source code reviews with free open-source scanners: Gitleaks (leaked secrets), OSV-Scanner (vulnerable
   libraries with CVEs) and Bandit (insecure Python). Admins give a public GitHub/GitLab/Bitbucket link or
   upload a zip (50 MB). Code is only read, never run, and is deleted when the review ends; only findings

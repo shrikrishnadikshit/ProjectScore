@@ -1,3 +1,4 @@
+import PublicFooter from '../components/PublicFooter.jsx'
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
@@ -55,6 +56,7 @@ export default function Login({ onSignedIn }) {
         <p className="muted small">Not a customer yet? <a href="/free-report">Get a free rating for your organisation</a>.</p>
         <p className="muted small"><a href="/scanner">About our scanner and opting out</a></p>
       </form>
+      <PublicFooter />
     </div>
   )
 }

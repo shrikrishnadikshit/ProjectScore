@@ -19,6 +19,9 @@ import FourthParties from './pages/FourthParties.jsx'
 import VendorFix from './pages/VendorFix.jsx'
 import Threats from './pages/Threats.jsx'
 import Policy from './pages/Policy.jsx'
+import Settings from './pages/Settings.jsx'
+import Methodology from './pages/Methodology.jsx'
+import Legal from './pages/Legal.jsx'
 import QuestionnaireView from './pages/QuestionnaireView.jsx'
 import VendorQuestionnaire from './pages/VendorQuestionnaire.jsx'
 import './styles.css'
@@ -31,6 +34,10 @@ createRoot(document.getElementById('root')).render(
         <Route path="/free-report" element={<FreeReport />} />
         <Route path="/q/:token" element={<VendorQuestionnaire />} />
         <Route path="/v/:token" element={<VendorFix />} />
+        <Route path="/methodology" element={<Methodology />} />
+        <Route path="/terms" element={<Legal />} />
+        <Route path="/privacy" element={<Legal />} />
+        <Route path="/dpa" element={<Legal />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Portfolio />} />
           <Route path="/entities/:id" element={<EntityDetail />} />
@@ -45,6 +52,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/supply-chain" element={<FourthParties />} />
           <Route path="/threats" element={<Threats />} />
           <Route path="/policy" element={<Policy />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/code-reviews/:reviewId" element={<CodeReviews />} />
           <Route path="/questionnaires/:id" element={<QuestionnaireView />} />
           <Route path="/in-depth" element={<DeepScans />} />

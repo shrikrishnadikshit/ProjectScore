@@ -89,7 +89,7 @@ def test_assets_endpoint():
     assert r["counts"] == {"high": 1, "medium": 1, "low": 1}
     assert r["matrix"]["high"] == {"high": 1, "medium": 0, "low": 1}
     assert r["priorities"]["1"] == 1 and r["priorities"]["3"] == 1
-    assert r["hosting"]["outside_india"] == 2 and r["hosting"]["high_risk"] == ["1.2.3.4"]
+    assert r["hosting"]["outside_home"] == 2 and r["hosting"]["high_risk"] == ["1.2.3.4"]
     assert r["assets"][0]["asset"] == "login.v.example"
     assert other.get(f"/api/entities/{eid}/assets").status_code == 404
     f = {x["asset"]: x for x in user.get(f"/api/entities/{eid}").json()["findings"]}

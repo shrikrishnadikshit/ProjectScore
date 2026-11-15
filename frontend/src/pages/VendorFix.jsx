@@ -1,3 +1,4 @@
+import PublicFooter from '../components/PublicFooter.jsx'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api } from '../api.js'
@@ -78,6 +79,7 @@ export default function VendorFix() {
         </section>
       )}
       {error && <div className="banner error">{error}</div>}
+      <PublicFooter />
     </div>
   )
 }

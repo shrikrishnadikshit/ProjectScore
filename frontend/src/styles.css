@@ -341,3 +341,6 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .matrix { border-collapse: collapse; font-size: 13px; }
 .matrix th, .matrix td { padding: 6px 10px; text-align: center; border: 1px solid var(--border); }
 .matrix td.hot { font-weight: 700; }
+.public-footer { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); }
+.public-footer a { color: var(--muted); }
+.app-footer { max-width: 1200px; margin: 24px auto 32px; padding: 0 16px; }

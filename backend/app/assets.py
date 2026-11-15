@@ -176,7 +176,7 @@ def prioritise(findings: list[Finding], vals: dict[str, str]) -> list[dict]:
              "priority": priority(f.severity, vals.get(f.asset_value)) if f.severity != "info" else 4} for f in findings]
 
 
-def hosting_summary(profiles: list[AssetProfile]) -> dict:
+def hosting_summary(profiles: list[AssetProfile], home: str = "IN") -> dict:
     countries: dict[str, int] = {}
     providers: dict[str, int] = {}
     for p in profiles:
@@ -188,13 +188,14 @@ def hosting_summary(profiles: list[AssetProfile]) -> dict:
     return {"countries": sorted(({"code": c, "count": n, "high_risk": c in HIGH_RISK_COUNTRIES,
                                   "name": HIGH_RISK_COUNTRIES.get(c)} for c, n in countries.items()), key=lambda x: -x["count"]),
             "providers": sorted(({"name": k, "count": n} for k, n in providers.items()), key=lambda x: -x["count"])[:15],
-            "outside_india": sum(n for c, n in countries.items() if c != "IN"), "located": located,
+            "home_country": home, "outside_home": sum(n for c, n in countries.items() if c != home), "located": located,
             "high_risk": sorted({p.asset for p in profiles if p.country in HIGH_RISK_COUNTRIES})}
 
 
 @router.get("/entities/{entity_id}/assets")
 def entity_assets(entity_id: int, user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)) -> dict:
     from .main import _portfolio_item
+    from .orgsettings import settings_for
 
     _portfolio_item(session, user, entity_id)
     profiles = session.scalars(select(AssetProfile).where(AssetProfile.entity_id == entity_id)).all()
@@ -217,5 +218,5 @@ def entity_assets(entity_id: int, user: User = Depends(auth.current_user), sessi
         "counts": {v: sum(p.value == v for p in profiles) for v in ("high", "medium", "low")},
         "matrix": matrix, "priorities": {str(n): sum(f["priority"] == n for f in pri) for n in (1, 2, 3, 4)},
         "finding_priority": {str(f["id"]): f["priority"] for f in pri},
-        "hosting": hosting_summary(profiles),
+        "hosting": hosting_summary(profiles, settings_for(session, user.org_id)["country"]),
     }

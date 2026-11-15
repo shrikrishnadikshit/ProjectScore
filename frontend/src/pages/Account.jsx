@@ -40,6 +40,36 @@ export default function Account() {
         {message && <p className="strong">{message}</p>}
         <div className="actions"><button className="btn primary">Change password</button></div>
       </form>
+      <PrivacyRights />
     </>
+  )
+}
+
+
+function PrivacyRights() {
+  const [confirming, setConfirming] = useState(false)
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  async function remove(e) {
+    e.preventDefault(); setError(null)
+    try { await api.deleteAccount(password); window.location.href = '/' } catch (err) { setError(err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.') }
+  }
+  return (
+    <section className="card form">
+      <h2>Your data</h2>
+      <p className="small">Download a copy of the personal data ProjectScore holds about you, or delete your account. See the <a href="/privacy">privacy policy</a>.</p>
+      <div className="actions" style={{ justifyContent: 'flex-start' }}>
+        <a className="btn ghost" href="/api/account/export" download>Download my data</a>
+        {!confirming && <button type="button" className="btn ghost" onClick={() => setConfirming(true)}>Delete my account</button>}
+      </div>
+      {confirming && (
+        <form onSubmit={remove} className="form" style={{ marginTop: 12 }}>
+          <p className="small">This signs you out and permanently removes your name and email. Your organisation's portfolio stays. It cannot be undone.</p>
+          <label>Enter your password to confirm<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+          {error && <p className="error">{error}</p>}
+          <div className="actions"><button type="button" className="btn ghost" onClick={() => setConfirming(false)}>Cancel</button><button className="btn primary">Delete my account</button></div>
+        </form>
+      )}
+    </section>
   )
 }
