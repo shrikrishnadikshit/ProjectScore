@@ -1,8 +1,10 @@
 """Web security collector (risk factors 6 and 7): one GET per host, headers only."""
 
+from concurrent.futures import ThreadPoolExecutor
+
 import httpx
 
-from . import RawFinding
+from . import RawFinding, software
 
 USER_AGENT = "ProjectScore-Scanner/0.1 (+passive security rating; opt-out page to follow)"
 
@@ -32,14 +34,26 @@ def evaluate_headers(host: str, headers: dict[str, str], set_cookies: list[str])
     return findings
 
 
-def collect(hosts: list[str]) -> tuple[list[RawFinding], int]:
-    findings, assessed = [], 0
+def _fetch(client: httpx.Client, host: str):
+    try:
+        return host, client.get(f"https://{host}/")
+    except httpx.HTTPError:
+        return host, None
+
+
+def collect(hosts: list[str], workers: int = 5) -> tuple[list[RawFinding], int, int]:
+    """Returns findings, hosts assessed for web security, and hosts with identifiable software versions."""
+    findings, assessed, versioned = [], 0, 0
     with httpx.Client(timeout=8.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
-        for host in hosts:
-            try:
-                resp = client.get(f"https://{host}/")
-            except httpx.HTTPError:
-                continue
-            assessed += 1
-            findings += evaluate_headers(host, dict(resp.headers), resp.headers.get_list("set-cookie"))
-    return findings, assessed
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(pool.map(lambda h: _fetch(client, h), hosts))
+    for host, resp in results:
+        if resp is None:
+            continue
+        assessed += 1
+        headers = dict(resp.headers)
+        findings += evaluate_headers(host, headers, resp.headers.get_list("set-cookie"))
+        sw_findings, has_versions = software.evaluate(host, headers)
+        findings += sw_findings
+        versioned += has_versions
+    return findings, assessed, versioned

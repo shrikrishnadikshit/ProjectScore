@@ -1,6 +1,7 @@
 """TLS collector (risk factor 6): one standard handshake per host, nothing intrusive."""
 
 import socket
+from concurrent.futures import ThreadPoolExecutor
 import ssl
 from datetime import datetime, timezone
 
@@ -44,10 +45,11 @@ def handshake(host: str, port: int = 443, timeout: float = 5.0) -> dict | None:
         return None  # no TLS service reachable; not a finding
 
 
-def collect(hosts: list[str]) -> tuple[list[RawFinding], int]:
+def collect(hosts: list[str], workers: int = 5) -> tuple[list[RawFinding], int]:
     findings, assessed = [], 0
-    for host in hosts:
-        result = handshake(host)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(handshake, hosts))
+    for host, result in zip(hosts, results):
         if result is None:
             continue
         assessed += 1

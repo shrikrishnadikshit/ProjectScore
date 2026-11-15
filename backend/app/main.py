@@ -179,6 +179,7 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
     latest = _latest(session, entity_id)
     out = _entity_out(item.entity, item, latest)
     out["factors"] = latest.factors if latest else {}
+    out["assets"] = sorted(a.value for a in item.entity.assets)
     out["findings"] = [
         {"id": f.id, "risk_factor": f.risk_factor, "code": f.code, "title": f.title, "severity": f.severity,
          "asset": f.asset_value, "status": f.status, "evidence": f.evidence,

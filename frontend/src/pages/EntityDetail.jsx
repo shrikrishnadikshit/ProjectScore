@@ -5,7 +5,7 @@ import { GradeBadge, ScoreGauge, gradeClass } from '../components/Grade.jsx'
 import History from '../components/History.jsx'
 
 const POLL_MS = 3000
-const POLL_LIMIT = 40
+const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
 
 export default function EntityDetail() {
   const { id } = useParams()
@@ -75,13 +75,14 @@ export default function EntityDetail() {
       <div className="page-head">
         <div>
           <h1>{entity.name}</h1>
-          <p className="muted">{entity.primary_domain}{entity.industry ? ` · ${entity.industry}` : ''} · Tier {entity.tier}</p>
+          <p className="muted">{entity.primary_domain}{entity.industry ? ` · ${entity.industry}` : ''} · Tier {entity.tier}
+            {entity.assets?.length ? ` · ${entity.assets.length} internet-facing asset${entity.assets.length === 1 ? '' : 's'}` : ''}</p>
         </div>
         <button className="btn primary" onClick={rescan} disabled={scanning}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
       </div>
 
       {notice && <div className="banner">{notice}</div>}
-      {scanning && <div className="banner">Scan in progress. This usually takes under a minute; the page updates by itself.</div>}
+      {scanning && <div className="banner">Scan in progress. This usually takes one to three minutes; the page updates by itself.</div>}
 
       <section className="overview">
         <div className="card score-card">
@@ -150,6 +151,16 @@ export default function EntityDetail() {
           </div>
         )}
       </section>
+
+      {entity.assets?.length > 0 && (
+        <section className="card">
+          <h2>Discovered assets</h2>
+          <p className="muted small">Found passively in public certificate logs. Up to 25 are scanned per company.</p>
+          <div className="asset-list">
+            {entity.assets.map((a) => <span key={a} className="mono small asset">{a}</span>)}
+          </div>
+        </section>
+      )}
 
       {latest && (
         <section className="card">

@@ -176,6 +176,9 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
 .bar-fill { height: 100%; border-radius: 999px; }
 
+.asset-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.asset { background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; }
+
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .sev { display: inline-block; font-size: 12px; font-weight: 600; text-transform: capitalize; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; }
 .sev-critical { color: var(--critical); }

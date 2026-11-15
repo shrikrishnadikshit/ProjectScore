@@ -64,7 +64,7 @@ def main() -> None:
         session.flush()
         session.add(PortfolioItem(org_id=user.org_id, entity_id=entity.id, tier=tier))
         session.commit()
-        latest = scan_entity(session, entity, lambda e, raw=findings: (raw, COVER))
+        latest = scan_entity(session, entity, lambda e, raw=findings: (raw, COVER), discover=lambda d: [])
         # Two earlier, illustrative history points so the trend chart has something to show.
         for days_ago, delta in ((14, -35), (7, -15)):
             overall = max(300, min(900, latest.overall + delta))
