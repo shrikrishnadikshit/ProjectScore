@@ -17,6 +17,7 @@ import Advisory from './pages/Advisory.jsx'
 import CodeReviews from './pages/CodeReviews.jsx'
 import FourthParties from './pages/FourthParties.jsx'
 import VendorFix from './pages/VendorFix.jsx'
+import Threats from './pages/Threats.jsx'
 import QuestionnaireView from './pages/QuestionnaireView.jsx'
 import VendorQuestionnaire from './pages/VendorQuestionnaire.jsx'
 import './styles.css'
@@ -41,6 +42,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/advisory" element={<Advisory />} />
           <Route path="/code-reviews" element={<CodeReviews />} />
           <Route path="/supply-chain" element={<FourthParties />} />
+          <Route path="/threats" element={<Threats />} />
           <Route path="/code-reviews/:reviewId" element={<CodeReviews />} />
           <Route path="/questionnaires/:id" element={<QuestionnaireView />} />
           <Route path="/in-depth" element={<DeepScans />} />

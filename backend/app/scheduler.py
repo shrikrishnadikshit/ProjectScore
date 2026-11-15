@@ -73,6 +73,16 @@ def _loop() -> None:
             run_due_scans()
         except Exception:
             logger.exception("scheduler cycle failed")
+        try:
+            from .certificates import send_reminders
+
+            session = db.SessionLocal()
+            try:
+                send_reminders(session)
+            finally:
+                session.close()
+        except Exception:
+            logger.exception("certificate reminders failed")
 
 
 def start() -> None:

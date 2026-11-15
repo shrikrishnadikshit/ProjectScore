@@ -10,6 +10,8 @@ import RiskEstimate from '../components/RiskEstimate.jsx'
 import Incidents from '../components/Incidents.jsx'
 import FixPlan from '../components/FixPlan.jsx'
 import Vendors from '../components/Vendors.jsx'
+import Ransomware from '../components/Ransomware.jsx'
+import Certificates from '../components/Certificates.jsx'
 import VendorShares from '../components/VendorShares.jsx'
 
 const POLL_MS = 3000
@@ -150,6 +152,8 @@ export default function EntityDetail() {
         )}
       </section>
 
+      {latest && <Ransomware entityId={id} version={`${latest.created_at}-${findings.length}`} />}
+
       {latest && <FixPlan entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 
       <section className="card table-card">
@@ -166,7 +170,7 @@ export default function EntityDetail() {
                   <Fragment key={f.id}>
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
-                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} /></td>
+                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} />{f.attack?.length > 0 && <div className="chips" style={{ marginTop: 4 }}>{f.attack.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}</div>}</td>
                       <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
                       <td className="mono small">{f.asset}</td>
                       <td className="muted small">{new Date(f.first_seen).toLocaleDateString()}</td>
@@ -197,6 +201,8 @@ export default function EntityDetail() {
       <VendorShares entityId={id} entityName={entity.name} user={user} />
 
       <Questionnaires entityId={id} user={user} />
+
+      <Certificates entityId={id} />
 
       <Vendors entityId={id} entityName={entity.name} version={latest?.created_at} />
 

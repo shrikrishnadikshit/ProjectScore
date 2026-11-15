@@ -1,8 +1,8 @@
 """Core data objects from BRS Section 5.2 (subset needed for v1)."""
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Date, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -387,3 +387,24 @@ class VendorShare(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_rescan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class VendorCertificate(Base):
+    """A certification or audit report a vendor holds (ISO 27001, SOC 2...), recorded by the customer."""
+
+    __tablename__ = "vendor_certificates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30))
+    reference: Mapped[str | None] = mapped_column(String(200))   # certificate number or report name
+    issuer: Mapped[str | None] = mapped_column(String(200))      # certification body or audit firm
+    scope: Mapped[str | None] = mapped_column(String(1000))
+    issued_on: Mapped[date | None] = mapped_column(Date)
+    expires_on: Mapped[date | None] = mapped_column(Date)
+    exceptions: Mapped[int | None] = mapped_column(Integer)      # SOC 2 exceptions / audit nonconformities
+    note: Mapped[str | None] = mapped_column(String(2000))
+    reminded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

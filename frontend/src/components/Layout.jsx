@@ -39,6 +39,7 @@ export default function Layout() {
         </NavLink>
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
+          <NavLink to="/threats">Threats</NavLink>
           <NavLink to="/advisory">Advisory</NavLink>
           <NavLink to="/alerts">Alerts{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/in-depth">In-depth scans</NavLink>}

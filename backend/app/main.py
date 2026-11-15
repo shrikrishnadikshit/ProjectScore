@@ -28,7 +28,8 @@ from .sso import router as sso_router
 from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
-from . import codereview, vendors, vendorshare
+from .attack import techniques as attack_techniques
+from . import certificates, codereview, ransomware, threatevents, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -322,7 +323,8 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
     out["findings"] = [
         {"id": f.id, "risk_factor": f.risk_factor, "code": f.code, "title": f.title, "severity": f.severity,
          "asset": f.asset_value, "status": f.status, "evidence": f.evidence,
-         "first_seen": f.first_seen.isoformat(), "last_seen": f.last_seen.isoformat()}
+         "first_seen": f.first_seen.isoformat(), "last_seen": f.last_seen.isoformat(),
+         "attack": attack_techniques(f.code)}
         for f in session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open"))
     ]
     from . import cves as cve_data
@@ -413,6 +415,9 @@ app.include_router(advisory_router)
 app.include_router(codereview.router)
 app.include_router(vendors.router)
 app.include_router(vendorshare.router)
+app.include_router(ransomware.router)
+app.include_router(threatevents.router)
+app.include_router(certificates.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

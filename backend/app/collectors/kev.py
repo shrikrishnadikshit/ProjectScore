@@ -11,7 +11,7 @@ logger = logging.getLogger("projectscore.kev")
 KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
 _TTL = 24 * 3600
 _lock = threading.Lock()
-_cache: dict = {"ids": frozenset(), "loaded": 0.0}
+_cache: dict = {"ids": frozenset(), "entries": [], "loaded": 0.0}
 
 
 def parse(catalogue: dict) -> frozenset[str]:
@@ -25,10 +25,24 @@ def kev_ids() -> frozenset[str]:
         try:
             resp = httpx.get(KEV_URL, timeout=30.0)
             resp.raise_for_status()
-            _cache["ids"] = parse(resp.json())
+            data = resp.json()
+            _cache["ids"] = parse(data)
+            _cache["entries"] = entries(data)
             _cache["loaded"] = time.time()
             logger.info("loaded %d KEV entries", len(_cache["ids"]))
         except (httpx.HTTPError, ValueError, KeyError) as exc:
             logger.warning("could not load the CISA KEV catalogue: %s", exc)
             _cache["loaded"] = time.time() - _TTL + 600  # retry in 10 minutes
         return _cache["ids"]
+
+
+def entries(catalogue: dict) -> list[dict]:
+    keep = ("cveID", "vendorProject", "product", "vulnerabilityName", "dateAdded", "shortDescription",
+            "requiredAction", "dueDate", "knownRansomwareCampaignUse")
+    return [{k: v.get(k) for k in keep} for v in catalogue.get("vulnerabilities", []) if v.get("cveID")]
+
+
+def kev_entries() -> list[dict]:
+    """The full catalogue rows (loaded together with kev_ids)."""
+    kev_ids()
+    return _cache["entries"]

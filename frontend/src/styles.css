@@ -328,3 +328,8 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .cvss-critical { background: var(--critical); } .cvss-high { background: var(--high); }
 .cvss-medium { background: var(--medium); } .cvss-low, .cvss-none { background: var(--low); }
 @media (max-width: 600px) { .plan-btn { grid-template-columns: auto 1fr; } .plan-meta { grid-column: 1 / -1; } }
+.chip { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); text-decoration: none; }
+.chip:hover { text-decoration: underline; }
+.fair-curve { display: grid; gap: 4px; margin: 8px 0; }
+.fair-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr 52px; gap: 8px; align-items: center; font-size: 13px; }
+.fair-bar { height: 10px; border-radius: 3px; background: var(--primary); min-width: 2px; }

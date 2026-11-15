@@ -122,6 +122,16 @@ administrator's login. That account is created on first start.
   Replies appear on the company page and as alerts.
 - Bulk import: admins upload a CSV (name, domain, optional tier and industry; up to 500 rows); first scans run
   one at a time.
+- Ransomware susceptibility (0.00 to 1.00) per company from exposed remote access, exploited and outdated
+  software, spoofable email, compromise signs, leaked passwords, slow patching and industry; every signal and
+  weight is shown. Ranked across the portfolio on the Threats page.
+- Threat events: new CISA KEV entries (7/30/90 days) matched to vendors by exact CVE ("confirmed") or the same
+  software product, flagged when used in ransomware campaigns.
+- FAIR-style financial quantification: 10,000-year Monte Carlo of data-breach and ransomware losses with the
+  average, 1-in-20 and 1-in-100 years and a loss exceedance curve, in INR, USD and EUR.
+- MITRE ATT&CK techniques shown on every finding.
+- Vendor certificates and audit reports (ISO 27001, SOC 2, PCI DSS, CERT-In audit...) with expiry status,
+  reminders 30 days ahead, and a warning when certified vendors show serious scan findings.
 - Source code reviews with free open-source scanners: Gitleaks (leaked secrets), OSV-Scanner (vulnerable
   libraries with CVEs) and Bandit (insecure Python). Admins give a public GitHub/GitLab/Bitbucket link or
   upload a zip (50 MB). Code is only read, never run, and is deleted when the review ends; only findings

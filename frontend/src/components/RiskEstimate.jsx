@@ -9,6 +9,10 @@ const fmtInr = (rupees) => {
 const fmtFx = (amount, currency) => new Intl.NumberFormat(currency === 'EUR' ? 'en-IE' : 'en-US',
   { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(amount)
 const money = (values, currency) => currency === 'INR' ? fmtInr(values.INR) : fmtFx(values[currency], currency)
+const convertShare = (r, k) => {
+  const crore = r.fair.by_scenario[k]
+  return { INR: crore * 1e7, USD: crore * 1e7 / r.exchange_rates.USD, EUR: crore * 1e7 / r.exchange_rates.EUR }
+}
 const CURRENCIES = [['INR', '₹ INR'], ['USD', '$ USD'], ['EUR', '€ EUR']]
 
 function savedCurrency() {
@@ -50,6 +54,28 @@ export default function RiskEstimate({ entityId, version }) {
         <div><div className="stat">{(r.probability * 100).toFixed(1)}%</div><div className="muted small">estimated chance of a breach this year</div></div>
         <div><div className="stat">{money(r.currencies.impact, cur)}</div><div className="muted small">likely cost if a breach happens</div></div>
       </div>
+      {r.fair && (
+        <div style={{ marginTop: 16 }}>
+          <h3 style={{ margin: '0 0 4px' }}>Range of yearly losses (FAIR simulation)</h3>
+          <p className="muted small" style={{ marginTop: 0 }}>{r.fair.simulations.toLocaleString('en-IN')} simulated years using the FAIR method, covering data breaches and ransomware (susceptibility {r.fair.ransomware_index.toFixed(2)}).</p>
+          <div className="stats">
+            <div><div className="stat">{money(r.fair.currencies.mean_crore, cur)}</div><div className="muted small">average yearly loss</div></div>
+            <div><div className="stat">{money(r.fair.currencies.p95_crore, cur)}</div><div className="muted small">a bad year (1 in 20)</div></div>
+            <div><div className="stat">{money(r.fair.currencies.p99_crore, cur)}</div><div className="muted small">a very bad year (1 in 100)</div></div>
+          </div>
+          <div className="small strong">Chance of losing more than…</div>
+          <div className="fair-curve">
+            {r.fair.exceedance.map((pt, i) => (
+              <div key={i} className="fair-row">
+                <span>{money(r.fair.currencies.exceedance[i], cur)}</span>
+                <div><div className="fair-bar" style={{ width: `${Math.max(1, pt.probability / Math.max(r.fair.exceedance[0].probability, 0.0001) * 100)}%` }} /></div>
+                <span className="num">{(pt.probability * 100).toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+          <p className="muted small">Average split: data breach {money(convertShare(r, 'data_breach'), cur)}, ransomware {money(convertShare(r, 'ransomware'), cur)}.</p>
+        </div>
+      )}
       {form && (
         <form className="form" onSubmit={save} style={{ maxWidth: 'none' }}>
           <div className="form-row">
@@ -76,6 +102,7 @@ export default function RiskEstimate({ entityId, version }) {
           <li>Average breach cost in India: ₹{r.assumptions.breach_cost_crore} crore ({r.assumptions.breach_cost_source}).</li>
           <li>Chance of a breach is {r.assumptions.base_probability_at_700 * 100}% a year at a score of 700, multiplying by about 2.7 for every 250 points lower and falling for higher scores.</li>
           <li>Exchange rates: ₹{r.exchange_rates.USD} per US dollar and ₹{r.exchange_rates.EUR} per euro ({r.exchange_rates.source}{r.exchange_rates.date ? `, ${r.exchange_rates.date}` : ''}).</li>
+          {r.fair && <li>FAIR simulation: breach events per year drawn between {r.fair.assumptions.breach_events_per_year[0]} and {r.fair.assumptions.breach_events_per_year[2]} (most likely {r.fair.assumptions.breach_events_per_year[1]}); each loss {r.fair.assumptions.breach_loss_multiples[0]}× to {r.fair.assumptions.breach_loss_multiples[2]}× the likely cost, plus fines and lawsuits in {r.fair.assumptions.secondary_loss_chance * 100}% of breaches; ransomware {r.fair.assumptions.ransomware_attacks_per_year} attacks a year on average, each {r.fair.assumptions.ransomware_loss_multiples[0]}× to {r.fair.assumptions.ransomware_loss_multiples[2]}×.</li>}
           <li>Cost scales with company size as {r.assumptions.size_scaling}, times {r.assumptions.sensitivity_multiplier} for data sensitivity. The range is half to double the central estimate.</li>
         </ul>
       )}
