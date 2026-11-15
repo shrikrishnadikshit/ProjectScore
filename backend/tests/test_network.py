@@ -45,8 +45,12 @@ def test_collect_end_to_end_with_stubbed_sources(monkeypatch):
     monkeypatch.setenv("EXPOSURE_SOURCE", "internetdb")
     monkeypatch.setattr(network, "resolve_ips", lambda hosts: {"140.82.112.3": ["github.com"], "104.16.1.1": ["www.github.com"]})
     small_owned = {**RDAP_OWNED, "cidr0_cidrs": [{"v4prefix": "140.82.112.0", "length": 30}]}
-    monkeypatch.setattr(network, "rdap_lookup",
-                        lambda c, ip: network.parse_rdap(small_owned if ip.startswith("140.") else RDAP_CLOUD))
+    calls = []
+
+    def fake_rdap(c, ip):
+        calls.append(ip)
+        return network.parse_rdap(small_owned if ip.startswith("140.") else RDAP_CLOUD)
+    monkeypatch.setattr(network, "rdap_lookup", fake_rdap)
     exposures = {"140.82.112.3": {"ports": [443], "vulns": [], "tags": []},
                  "140.82.112.1": {"ports": [3389], "vulns": [], "tags": []},
                  "140.82.112.2": {"ports": [], "vulns": [], "tags": []},
@@ -58,6 +62,7 @@ def test_collect_end_to_end_with_stubbed_sources(monkeypatch):
     assert findings[0].asset_value == "140.82.112.1"
     assert ("netblock", "140.82.112.0/30") in assets and ("ip", "140.82.112.1") in assets
     assert coverage["network_exposure"] == 3
+    assert calls == ["140.82.112.3", "104.16.1.1"]  # one registry lookup per network
 
 
 def test_collect_off():

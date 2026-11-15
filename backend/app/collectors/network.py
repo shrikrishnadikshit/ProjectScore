@@ -12,6 +12,7 @@ import ipaddress
 import logging
 import os
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
@@ -95,13 +96,34 @@ def is_owned(rdap: dict, entity_name: str, domain: str) -> bool:
 
 
 def rdap_lookup(client: httpx.Client, ip: str) -> dict | None:
-    try:
-        resp = client.get(RDAP_URL.format(ip=ip), follow_redirects=True)
-        resp.raise_for_status()
-        return parse_rdap(resp.json())
-    except (httpx.HTTPError, ValueError) as exc:
-        logger.info("RDAP lookup failed for %s: %s", ip, exc)
-        return None
+    for attempt in range(3):
+        try:
+            resp = client.get(RDAP_URL.format(ip=ip), follow_redirects=True)
+            if resp.status_code == 429 and attempt < 2:
+                time.sleep(2 * (attempt + 1))  # registries rate-limit bursts
+                continue
+            resp.raise_for_status()
+            return parse_rdap(resp.json())
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("RDAP lookup failed for %s: %s", ip, exc)
+            return None
+    return None
+
+
+def rdap_for_all(client: httpx.Client, ips: list[str]) -> dict[str, dict | None]:
+    """One registry lookup per network: IPs inside a block already returned reuse that answer."""
+    results: dict[str, dict | None] = {}
+    known: list[tuple[ipaddress.IPv4Network, dict]] = []
+    for ip in ips:
+        addr = ipaddress.ip_address(ip)
+        hit = next((data for net, data in known if addr in net), None)
+        if hit is None:
+            hit = rdap_lookup(client, ip)
+            if hit:
+                for cidr in hit["cidrs"]:
+                    known.append((ipaddress.ip_network(cidr, strict=False), hit))
+        results[ip] = hit
+    return results
 
 
 # ---------- Exposure ----------
@@ -170,8 +192,7 @@ def collect(hosts: list[str], entity_name: str, domain: str) -> tuple[list[RawFi
     targets: list[str] = list(resolved)[:MAX_IPS]
     with httpx.Client(timeout=15.0, headers={"User-Agent": USER_AGENT}) as client:
         seen_blocks = set()
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            rdaps = dict(zip(targets, pool.map(lambda ip: rdap_lookup(client, ip), targets)))
+        rdaps = rdap_for_all(client, targets)
         for ip, rdap in rdaps.items():
             if not rdap or not is_owned(rdap, entity_name, domain):
                 continue
