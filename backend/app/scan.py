@@ -1,6 +1,7 @@
 """Runs all collectors for an entity, stores findings and a new score."""
 
 import ipaddress
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -9,6 +10,8 @@ from sqlalchemy.orm import Session
 from .collectors import RawFinding, compromise, discovery, dns_health, email, network, tls, web
 from .models import Asset, Entity, Finding, Score
 from .scoring import ScoringFinding, compute_score
+
+logger = logging.getLogger("projectscore.scan")
 
 
 def hosts_for(entity: Entity) -> list[str]:
@@ -92,6 +95,7 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
     previous = {(f.code, f.asset_value): f for f in session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open"))}
     seen = set()
+    new_findings = []
     for r in raw:
         key = (r.code, r.asset_value)
         seen.add(key)
@@ -99,10 +103,12 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
             previous[key].last_seen = now
             previous[key].evidence = r.evidence
         else:
-            session.add(Finding(entity_id=entity.id, asset_value=r.asset_value, risk_factor=r.risk_factor,
-                                code=r.code, title=r.title, severity=r.severity,
-                                detection_confidence=r.detection_confidence, evidence=r.evidence,
-                                first_seen=now, last_seen=now))
+            finding = Finding(entity_id=entity.id, asset_value=r.asset_value, risk_factor=r.risk_factor,
+                              code=r.code, title=r.title, severity=r.severity,
+                              detection_confidence=r.detection_confidence, evidence=r.evidence,
+                              first_seen=now, last_seen=now)
+            session.add(finding)
+            new_findings.append(finding)
     for key, f in previous.items():
         if f.code in RETIRED_CODES:
             f.status = "false_positive"
@@ -126,6 +132,8 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
             known[value] = asset
     session.flush()
 
+    previous_score = session.scalars(select(Score).where(Score.entity_id == entity.id)
+                                     .order_by(Score.created_at.desc(), Score.id.desc())).first()
     all_findings = session.scalars(select(Finding).where(Finding.entity_id == entity.id)).all()
     result = compute_score(
         [ScoringFinding(risk_factor=f.risk_factor, severity=f.severity, asset_value=f.asset_value, code=f.code,
@@ -137,4 +145,11 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
                   model_version=result["model_version"], factors=result["factors"], trace=result["trace"])
     session.add(score)
     session.commit()
+    try:
+        from .alerts import notify
+
+        notify(session, entity, previous_score, score, new_findings)
+    except Exception:  # an alert problem must never lose a completed scan
+        logger.exception("could not create alerts for %s", entity.primary_domain)
+        session.rollback()
     return score

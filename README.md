@@ -88,6 +88,9 @@ administrator's login. That account is created on first start.
 - Framework mapping on each company page: findings mapped to NIST CSF 2.0, ISO/IEC 27001:2022 Annex A,
   CERT-In Directions (2022), RBI Cyber Security Framework (2016) and SEBI CSCRF (2024). Indicative only,
   not a compliance assessment (`backend/app/frameworks.py`).
+- Alerts: when a company drops a grade, falls 20+ points (`ALERT_SCORE_DROP`) or gets new critical/high
+  issues, every organisation watching it sees an alert (nav badge and Alerts page). Email goes out through
+  Resend when `RESEND_API_KEY` and `ALERT_EMAIL_FROM` are set; links use `APP_URL`.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

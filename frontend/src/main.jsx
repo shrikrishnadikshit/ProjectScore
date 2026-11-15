@@ -12,6 +12,7 @@ import DeepScans from './pages/DeepScans.jsx'
 import Disputes from './pages/Disputes.jsx'
 import FreeReport from './pages/FreeReport.jsx'
 import Leads from './pages/Leads.jsx'
+import Alerts from './pages/Alerts.jsx'
 import './styles.css'
 
 createRoot(document.getElementById('root')).render(
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/opt-outs" element={<OptOuts />} />
           <Route path="/disputes" element={<Disputes />} />
           <Route path="/leads" element={<Leads />} />
+          <Route path="/alerts" element={<Alerts />} />
           <Route path="/in-depth" element={<DeepScans />} />
           <Route path="/in-depth/:scanId" element={<DeepScans />} />
         </Route>

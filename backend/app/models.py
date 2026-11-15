@@ -221,3 +221,19 @@ class FreeReport(Base):
     status: Mapped[str] = mapped_column(String(20), default="scanning")  # scanning, ready, failed
     message: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class Alert(Base):
+    """A notice for one organisation about a company in its portfolio (score drop or new serious issue)."""
+
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int | None] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(30))  # score_drop, new_serious
+    severity: Mapped[str] = mapped_column(String(20), default="warning")  # warning, critical
+    title: Mapped[str] = mapped_column(String(300))
+    detail: Mapped[str | None] = mapped_column(String(4000))
+    read: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

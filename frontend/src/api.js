@@ -57,6 +57,10 @@ export const api = {
   requestFreeReport: (data) => request('/public/free-report', { method: 'POST', body: JSON.stringify(data) }),
   getFreeReport: (token) => request(`/public/free-report/${encodeURIComponent(token)}`),
   entityFrameworks: (id) => request(`/entities/${id}/frameworks`),
+  listAlerts: () => request('/alerts'),
+  alertCount: () => request('/alerts/unread-count'),
+  readAlert: (id) => request(`/alerts/${id}/read`, { method: 'POST' }),
+  readAllAlerts: () => request('/alerts/read-all', { method: 'POST' }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }

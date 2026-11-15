@@ -262,3 +262,14 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
   .fw-head { grid-template-columns: 1fr auto; }
   .fw-title { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* Alerts */
+.nav-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--high); color: #fff; font-size: 11px; line-height: 18px; text-align: center; font-weight: 600; }
+.alert-list { display: grid; gap: 10px; }
+.alert-item { padding: 14px 16px; border-left: 4px solid var(--medium); }
+.alert-item.alert-critical { border-left-color: var(--critical); }
+.alert-item.read { border-left-color: var(--border); }
+.alert-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.alert-time { margin-left: auto; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); flex: none; align-self: center; }
+.alert-detail { margin: 8px 0 0; white-space: pre-wrap; font-family: inherit; color: var(--muted); }

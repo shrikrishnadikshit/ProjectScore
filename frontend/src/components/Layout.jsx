@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { api, setUnauthorizedHandler } from '../api.js'
 import Login from '../pages/Login.jsx'
 
 export default function Layout() {
   const [user, setUser] = useState(undefined) // undefined = checking, null = signed out
+  const [unread, setUnread] = useState(0)
+  const refreshAlerts = useCallback(() => { api.alertCount().then((r) => setUnread(r.count)).catch(() => {}) }, [])
+
+  useEffect(() => {
+    if (!user) return
+    refreshAlerts()
+    const t = setInterval(refreshAlerts, 60000)
+    return () => clearInterval(t)
+  }, [user, refreshAlerts])
 
   useEffect(() => {
     setUnauthorizedHandler(() => setUser(null))
@@ -30,6 +39,7 @@ export default function Layout() {
         </NavLink>
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
+          <NavLink to="/alerts">Alerts{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/in-depth">In-depth scans</NavLink>}
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
           {user.role === 'owner' && <NavLink to="/disputes">Disputes</NavLink>}
@@ -42,7 +52,7 @@ export default function Layout() {
         </div>
       </header>
       <main className="content">
-        <Outlet context={{ user }} />
+        <Outlet context={{ user, refreshAlerts }} />
       </main>
     </div>
   )

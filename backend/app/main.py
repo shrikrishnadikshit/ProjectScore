@@ -17,6 +17,7 @@ from .scan import NothingAssessed, scan_entity
 from .disputes import router as disputes_router
 from .freereport import router as freereport_router
 from .frameworks import router as frameworks_router
+from .alerts import router as alerts_router
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -263,6 +264,7 @@ app.include_router(active_router)
 app.include_router(disputes_router)
 app.include_router(freereport_router)
 app.include_router(frameworks_router)
+app.include_router(alerts_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
