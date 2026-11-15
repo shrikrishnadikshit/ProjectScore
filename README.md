@@ -42,3 +42,12 @@ Uses SQLite by default; set `DATABASE_URL` (for example `postgresql+psycopg://..
 ```bash
 cd backend && python -m pytest -q
 ```
+
+## Deploy to Render
+
+The repository includes `render.yaml` and a `Dockerfile`. In Render, choose **New > Blueprint**, select this
+repository, and Render creates the web service and a PostgreSQL database and wires `DATABASE_URL`
+between them. Every push to `main` redeploys. Health check: `/api/health`.
+
+Before inviting pilot users, login must be in place (next on the build list) so the portfolio is not open
+to anyone with the URL.
