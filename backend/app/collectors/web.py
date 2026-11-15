@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
-from . import RawFinding, jslibs, software
+from . import RawFinding, jslibs, netsafe, software
 
 import os
 
@@ -80,7 +80,9 @@ def collect(hosts: list[str], workers: int = 5, domain: str | None = None) -> tu
     host that served it. Pages served from outside the entity's domain are not attributed to it.
     """
     findings, assessed, versioned = [], 0, 0
-    with httpx.Client(timeout=8.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}) as client:
+    hosts = netsafe.public_hosts(hosts)
+    with httpx.Client(timeout=8.0, follow_redirects=True, headers={"User-Agent": USER_AGENT},
+                      event_hooks={"request": [netsafe.block_private_redirects]}) as client:
         with ThreadPoolExecutor(max_workers=workers) as pool:
             results = list(pool.map(lambda h: _fetch(client, h), hosts))
     evaluated = set()

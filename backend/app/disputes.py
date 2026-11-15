@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from . import auth, db
 from .models import Dispute, Entity, Finding, PortfolioItem, Score, User
-from .optout import OptOutIn, limiter, require_owner
+from .optout import OptOutIn, limiter, public_daily, require_owner
 from .scoring import ScoringFinding, compute_score
 
 router = APIRouter(prefix="/api")
@@ -101,7 +101,7 @@ def public_dispute(body: PublicDisputeIn, request: Request, session: Session = D
     if not body.reason or len(body.reason.strip()) < 10:
         raise HTTPException(422, "please describe what is wrong (at least 10 characters)")
     client = request.headers.get("x-forwarded-for", request.client.host if request.client else "?").split(",")[0]
-    if not limiter.allow("dispute:" + client.strip()):
+    if not limiter.allow("dispute:" + client.strip()) or not public_daily.allow("all"):
         raise HTTPException(429, "too many requests; please try again later")
     entity = session.scalars(select(Entity).where(Entity.primary_domain == body.domain)).first()
     session.add(Dispute(entity_id=entity.id if entity else None, domain=body.domain, contact_email=body.contact_email,

@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from . import auth, db
 from .collectors.dns_util import LookupFailed, txt_records
 from .collectors.discovery import discover_hosts
+from .collectors.netsafe import public_hosts
 from .models import ActiveScan, DomainVerification, Entity, User
 from .optout import _DOMAIN_RE
 
@@ -188,6 +189,7 @@ def scan_targets(session: Session, domain: str, discover=None) -> list[str]:
     except Exception:  # discovery is best-effort here
         logger.warning("discovery failed for in-depth scan of %s", domain)
     in_scope = [h for h in dict.fromkeys(hosts) if h == domain or h.endswith("." + domain)]
+    in_scope = public_hosts(in_scope)  # never point Nuclei at private or internal addresses
     return [f"https://{h}" for h in in_scope[:MAX_TARGETS]]
 
 

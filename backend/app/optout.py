@@ -43,6 +43,8 @@ class _IpLimiter:
 
 
 limiter = _IpLimiter()
+# Overall cap on the public forms, in case per-IP limits are dodged by spoofing forwarded addresses.
+public_daily = _IpLimiter(limit=200, window=24 * 3600)
 
 
 class OptOutIn(BaseModel):
@@ -85,7 +87,7 @@ def request_opt_out(body: OptOutIn, request: Request, session: Session = Depends
     if body.website:
         return {"status": "received"}
     client = request.headers.get("x-forwarded-for", request.client.host if request.client else "?").split(",")[0]
-    if not limiter.allow(client.strip()):
+    if not limiter.allow(client.strip()) or not public_daily.allow("all"):
         raise HTTPException(429, "too many requests; please try again later")
     session.add(OptOutRequest(domain=body.domain, contact_email=body.contact_email,
                               organisation=body.organisation, reason=body.reason))

@@ -99,3 +99,17 @@ administrator's login. That account is created on first start.
 - Admins can also add users to their own organisation with `POST /api/users`.
 - Local demo login after `python -m app.seed`: `demo@example.com` / `demo-password-123`. For local HTTP,
   run uvicorn with `COOKIE_SECURE=false`.
+
+## Security and operations
+
+- The app sends a strict Content-Security-Policy, HSTS (in production), X-Frame-Options DENY, nosniff and
+  no-store on API responses. Cross-site POSTs to `/api/` are refused by an Origin check.
+- The scanner never contacts private or internal addresses: every host and every redirect target must
+  resolve only to public IPs (`backend/app/collectors/netsafe.py`). This matters because anyone can request
+  a free report on any domain.
+- Public forms have per-IP limits plus overall daily caps (200 form posts, `FREE_REPORT_DAILY_SCANS`
+  new free-report scans, default 40).
+- Error tracking: set `SENTRY_DSN` (and optionally `SENTRY_ENVIRONMENT`) on Render. No personal data is sent.
+- Backups: Render continuously backs up paid Postgres databases with point-in-time recovery (3 days on a
+  Hobby workspace, 7 days on Pro). For longer retention, use **Create export** on the database's Recovery
+  page (kept 7 days) and download it, for example monthly. Deleting the database deletes its backups.

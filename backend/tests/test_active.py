@@ -76,7 +76,8 @@ def test_expired_verification_refused(monkeypatch):
     assert a.post("/api/active-scans", json=AUTH).status_code == 403
 
 
-def test_runner_scope_and_results():
+def test_runner_scope_and_results(monkeypatch):
+    monkeypatch.setattr(active, "public_hosts", lambda hosts: [h for h in hosts if h != "internal.client.example"])
     s = db.SessionLocal()
     scan = ActiveScan(org_id=1, domain="client.example", requested_by=1, authoriser_name="P",
                       authoriser_title="CISO", authorisation_text="x")

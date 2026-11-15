@@ -1,11 +1,13 @@
 import logging
+import os
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse, Response as RawResponse
+from fastapi.responses import FileResponse, JSONResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
@@ -28,6 +30,14 @@ SCAN_COOLDOWN = timedelta(minutes=10)
 
 logger = logging.getLogger("projectscore")
 
+# Error tracking: set SENTRY_DSN on Render to report crashes to Sentry. Personal data (cookies,
+# request bodies, user emails) is not sent.
+if os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+
+    sentry_sdk.init(dsn=os.environ["SENTRY_DSN"], send_default_pii=False, traces_sample_rate=0.0,
+                    environment=os.environ.get("SENTRY_ENVIRONMENT", "production"))
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -46,6 +56,32 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="ProjectScore API", version="0.2.0", lifespan=lifespan)
 api = APIRouter(prefix="/api")
+
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; "
+       "base-uri 'self'; form-action 'self'; frame-ancestors 'none'")
+UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    # Cross-site request check: browsers send Origin on cross-site POSTs, so a request from another
+    # site is refused even though the session cookie is already SameSite=Lax.
+    if request.method in UNSAFE_METHODS and request.url.path.startswith("/api/"):
+        origin = request.headers.get("origin")
+        if origin and origin != "null" and urlsplit(origin).netloc != request.headers.get("host"):
+            return JSONResponse({"detail": "cross-site request refused"}, status_code=403)
+    response = await call_next(request)
+    response.headers.setdefault("Content-Security-Policy", CSP)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if auth.COOKIE_SECURE:
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
+    return response
 
 
 # ---------- Auth ----------

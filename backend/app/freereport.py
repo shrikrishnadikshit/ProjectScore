@@ -7,6 +7,7 @@ detail is for customers. Every request is stored as a lead that the owner sees o
 """
 
 import logging
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -24,6 +25,8 @@ logger = logging.getLogger("projectscore.freereport")
 router = APIRouter(prefix="/api")
 
 limiter = _IpLimiter(limit=3, window=24 * 3600)
+# Overall cap on new scans started from the public page, whatever addresses requests claim to come from.
+daily_scans = _IpLimiter(limit=int(os.environ.get("FREE_REPORT_DAILY_SCANS", "40")), window=24 * 3600)
 FRESH = timedelta(days=7)  # reuse a rating this recent instead of scanning again
 EXPIRES = timedelta(days=30)
 SEVERITIES = ("critical", "high", "medium", "low")
@@ -91,6 +94,9 @@ def request_report(body: FreeReportIn, request: Request, tasks: BackgroundTasks,
         session.flush()
     latest = _latest(session, entity.id)
     fresh = latest is not None and datetime.now(timezone.utc) - _aware(latest.created_at) < FRESH
+    if not fresh and not daily_scans.allow("all"):
+        session.rollback()
+        raise HTTPException(429, "we are handling a lot of requests today; please try again tomorrow")
     report = FreeReport(token=secrets.token_urlsafe(24), domain=body.domain, contact_email=body.contact_email,
                         name=body.name, organisation=body.organisation, entity_id=entity.id,
                         status="ready" if fresh else "scanning")
