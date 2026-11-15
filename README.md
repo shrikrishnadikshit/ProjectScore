@@ -27,8 +27,8 @@ cd frontend && npm install && npm run build && cd ..
 # 2. Start the server (serves the API at /api and the web app at /)
 cd backend
 pip install -r requirements.txt
-python -m app.seed          # optional: fictional demo companies
-uvicorn app.main:app --reload
+python -m app.seed          # optional: fictional demo companies and a demo login
+COOKIE_SECURE=false uvicorn app.main:app --reload
 # open http://127.0.0.1:8000  (API docs at /docs)
 ```
 
@@ -49,5 +49,15 @@ The repository includes `render.yaml` and a `Dockerfile`. In Render, choose **Ne
 repository, and Render creates the web service and a PostgreSQL database and wires `DATABASE_URL`
 between them. Every push to `main` redeploys. Health check: `/api/health`.
 
-Before inviting pilot users, login must be in place (next on the build list) so the portfolio is not open
-to anyone with the URL.
+When Render asks for `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12+ characters), enter the first
+administrator's login. That account is created on first start.
+
+## Accounts
+
+- Access is by invitation only. Each client organisation has its own private portfolio; scan results for
+  a company are shared, so a vendor is scanned once however many clients monitor it.
+- Add a user (and their organisation, if new) from a shell on the server:
+  `python -m app.admin create-user --org "Client Ltd" --email person@client.com [--admin]`
+- Admins can also add users to their own organisation with `POST /api/users`.
+- Local demo login after `python -m app.seed`: `demo@example.com` / `demo-password-123`. For local HTTP,
+  run uvicorn with `COOKIE_SECURE=false`.

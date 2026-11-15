@@ -11,6 +11,13 @@ services:
         fromDatabase:
           name: projectscore-db
           property: connectionString
+      # First administrator, created on first start if no users exist. Render asks for these values.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_ORG
+        value: ProjectScore
 
 databases:
   - name: projectscore-db

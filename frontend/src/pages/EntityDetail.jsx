@@ -15,6 +15,7 @@ export default function EntityDetail() {
   const [error, setError] = useState(null)
   const [scanning, setScanning] = useState(params.get('scanning') === '1')
   const [showTrace, setShowTrace] = useState(false)
+  const [notice, setNotice] = useState(null)
   const polls = useRef(0)
 
   const load = useCallback(async () => {
@@ -50,11 +51,12 @@ export default function EntityDetail() {
   }, [scanning])
 
   async function rescan() {
+    setNotice(null)
     try {
       await api.startScan(id)
       setScanning(true)
     } catch (e) {
-      setError(e.message)
+      setNotice(e.message.charAt(0).toUpperCase() + e.message.slice(1) + '.')
     }
   }
 
@@ -78,6 +80,7 @@ export default function EntityDetail() {
         <button className="btn primary" onClick={rescan} disabled={scanning}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
       </div>
 
+      {notice && <div className="banner">{notice}</div>}
       {scanning && <div className="banner">Scan in progress. This usually takes under a minute; the page updates by itself.</div>}
 
       <section className="overview">

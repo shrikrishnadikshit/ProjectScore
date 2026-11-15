@@ -1,6 +1,24 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { api, setUnauthorizedHandler } from '../api.js'
+import Login from '../pages/Login.jsx'
 
 export default function Layout() {
+  const [user, setUser] = useState(undefined) // undefined = checking, null = signed out
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => setUser(null))
+    api.me().then(setUser).catch(() => setUser(null))
+  }, [])
+
+  async function signOut() {
+    await api.logout().catch(() => {})
+    setUser(null)
+  }
+
+  if (user === undefined) return null
+  if (user === null) return <Login onSignedIn={setUser} />
+
   return (
     <div className="shell">
       <header className="topbar">
@@ -13,6 +31,10 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
         </nav>
+        <div className="account">
+          <span className="muted small account-org">{user.organization}</span>
+          <button className="btn ghost small-btn" onClick={signOut} title={user.email}>Sign out</button>
+        </div>
       </header>
       <main className="content">
         <Outlet />

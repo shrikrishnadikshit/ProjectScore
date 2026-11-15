@@ -1,8 +1,20 @@
+export class AuthError extends Error {}
+
+let onUnauthorized = () => {}
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     ...options,
   })
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    onUnauthorized()
+    throw new AuthError('Please sign in again')
+  }
   const body = res.status === 204 ? null : await res.json().catch(() => null)
   if (!res.ok) {
     const detail = body?.detail
@@ -13,6 +25,9 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  me: () => request('/auth/me'),
+  login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
   listEntities: () => request('/entities'),
   getEntity: (id) => request(`/entities/${id}`),
   getScores: (id) => request(`/entities/${id}/scores`),

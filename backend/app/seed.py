@@ -10,9 +10,14 @@ from sqlalchemy import select
 
 from . import db
 from .collectors import RawFinding as R
-from .models import Entity, Score
+from .auth import create_user
+from .models import Entity, PortfolioItem, Score, User
 from .scan import scan_entity
 from .scoring import grade_for
+
+# Local demo login only. Never run the seed against a production database.
+DEMO_EMAIL = "demo@example.com"
+DEMO_PASSWORD = "demo-password-123"
 
 COVER = {"email_security": 1, "dns_health": 3, "tls": 3, "web_security": 3}
 
@@ -48,11 +53,16 @@ DEMO = [
 def main() -> None:
     db.Base.metadata.create_all(db.engine)
     session = db.SessionLocal()
+    user = session.scalars(select(User).where(User.email == DEMO_EMAIL)).first()
+    if user is None:
+        user = create_user(session, "Demo Organisation", DEMO_EMAIL, DEMO_PASSWORD, role="admin")
     for name, domain, industry, tier, findings in DEMO:
         if session.scalars(select(Entity).where(Entity.primary_domain == domain)).first():
             continue
-        entity = Entity(name=name, primary_domain=domain, industry=industry, tier=tier)
+        entity = Entity(name=name, primary_domain=domain, industry=industry)
         session.add(entity)
+        session.flush()
+        session.add(PortfolioItem(org_id=user.org_id, entity_id=entity.id, tier=tier))
         session.commit()
         latest = scan_entity(session, entity, lambda e, raw=findings: (raw, COVER))
         # Two earlier, illustrative history points so the trend chart has something to show.
@@ -65,6 +75,7 @@ def main() -> None:
         session.commit()
     session.close()
     print("Demo data loaded:", ", ".join(d[0] for d in DEMO))
+    print(f"Sign in with {DEMO_EMAIL} / {DEMO_PASSWORD}")
 
 
 if __name__ == "__main__":
