@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, FACTOR_LABELS, SEVERITY_ORDER } from '../api.js'
 import { GradeBadge, ScoreGauge, gradeClass } from '../components/Grade.jsx'
 import History from '../components/History.jsx'
+import Frameworks from '../components/Frameworks.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -178,6 +179,8 @@ export default function EntityDetail() {
           </div>
         )}
       </section>
+
+      {latest && <Frameworks entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 
       {entity.assets?.length > 0 && (
         <section className="card">

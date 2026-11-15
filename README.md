@@ -85,6 +85,9 @@ administrator's login. That account is created on first start.
 - Free rating report at `/free-report` for prospects: work email must be at the domain; shows score, grade,
   factor grades and issue counts but no hostnames or IPs; reuses a rating under 7 days old; 3 requests per IP
   per day. Requests appear as leads on the owner's Leads page.
+- Framework mapping on each company page: findings mapped to NIST CSF 2.0, ISO/IEC 27001:2022 Annex A,
+  CERT-In Directions (2022), RBI Cyber Security Framework (2016) and SEBI CSCRF (2024). Indicative only,
+  not a compliance assessment (`backend/app/frameworks.py`).
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

@@ -243,3 +243,22 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .check input { margin-top: 4px; }
 .ok { color: var(--grade-a); font-weight: 600; font-size: 13px; }
 @media (max-width: 760px) { .topbar nav { gap: 12px; overflow-x: auto; } .topbar nav a { white-space: nowrap; } }
+
+/* Framework mapping */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }
+.tab { border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.tab.active { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.fw-list { border-top: 1px solid var(--border); }
+.fw-row { border-bottom: 1px solid var(--border); }
+.fw-head { display: grid; grid-template-columns: minmax(90px, 160px) 1fr auto; gap: 12px; align-items: center; width: 100%; padding: 10px 0; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.fw-head:disabled { cursor: default; }
+.fw-status { white-space: nowrap; font-weight: 600; }
+.status-issues { color: var(--grade-f); }
+.status-ok { color: var(--grade-a); }
+.status-na { color: var(--muted); font-weight: 400; }
+.fw-findings { margin: 0 0 10px; padding-left: 20px; }
+.fw-findings li { margin-bottom: 4px; }
+@media (max-width: 600px) {
+  .fw-head { grid-template-columns: 1fr auto; }
+  .fw-title { grid-column: 1 / -1; grid-row: 2; }
+}
