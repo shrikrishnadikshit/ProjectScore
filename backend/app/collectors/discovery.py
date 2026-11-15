@@ -33,15 +33,36 @@ def parse_ct_names(domain: str, records: list[dict]) -> set[str]:
     return names
 
 
+CERTSPOTTER_URL = "https://api.certspotter.com/v1/issuances"
+
+
+def _from_crt_sh(domain: str) -> set[str]:
+    # Unexpired certificates only: keeps the response small enough for very large organisations.
+    resp = httpx.get(CRT_SH_URL, params={"q": f"%.{domain}", "output": "json", "exclude": "expired"},
+                     headers={"User-Agent": USER_AGENT}, timeout=60.0)
+    resp.raise_for_status()
+    return parse_ct_names(domain, resp.json())
+
+
+def _from_certspotter(domain: str) -> set[str]:
+    resp = httpx.get(CERTSPOTTER_URL, params={"domain": domain, "include_subdomains": "true",
+                                              "expand": "dns_names"},
+                     headers={"User-Agent": USER_AGENT}, timeout=45.0)
+    resp.raise_for_status()
+    records = [{"name_value": "\n".join(item.get("dns_names", []))} for item in resp.json()]
+    return parse_ct_names(domain, records)
+
+
 def fetch_ct_names(domain: str) -> set[str]:
-    try:
-        resp = httpx.get(CRT_SH_URL, params={"q": f"%.{domain}", "output": "json"},
-                         headers={"User-Agent": USER_AGENT}, timeout=45.0)
-        resp.raise_for_status()
-        return parse_ct_names(domain, resp.json())
-    except (httpx.HTTPError, ValueError) as exc:
-        logger.warning("CT lookup failed for %s: %s", domain, exc)
-        return set()
+    """Certificate Transparency names from crt.sh, falling back to Cert Spotter if crt.sh fails."""
+    for source in (_from_crt_sh, _from_certspotter):
+        try:
+            names = source(domain)
+            if names:
+                return names
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("CT lookup via %s failed for %s: %s", source.__name__, domain, exc)
+    return set()
 
 
 def prioritise(domain: str, names: set[str], limit: int = MAX_HOSTS) -> list[str]:

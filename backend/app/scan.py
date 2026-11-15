@@ -36,7 +36,7 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     email_findings, email_assessed = email.collect(entity.primary_domain)
     dns_findings, dns_hosts = dns_health.collect(entity.primary_domain, hosts)
     tls_findings, tls_hosts = tls.collect(hosts)
-    web_findings, web_hosts, versioned_hosts = web.collect(hosts)
+    web_findings, web_hosts, versioned_hosts = web.collect(hosts, domain=entity.primary_domain)
     # The vulnerability factor counts only hosts whose software version was visible: a hidden
     # version is not evidence of being patched, so it must not raise the score.
     coverage = {"email_security": email_assessed, "dns_health": dns_hosts, "tls": tls_hosts,

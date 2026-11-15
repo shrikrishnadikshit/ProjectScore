@@ -35,8 +35,26 @@ def test_certificate():
 
 
 def test_headers():
-    found = web.evaluate_headers("a.com", {}, ["sid=1; Path=/"])
-    assert {"hsts_missing", "csp_missing", "xfo_missing", "cookie_flags"} <= codes(found)
-    good = {"Strict-Transport-Security": "max-age=31536000", "Content-Security-Policy": "frame-ancestors 'none'",
-            "X-Content-Type-Options": "nosniff"}
+    found = web.evaluate_headers("a.com", {"Content-Type": "text/html"}, ["sid=1; Path=/"])
+    assert {"hsts_missing", "csp_missing", "xfo_missing", "cookie_not_secure"} <= codes(found)
+    good = {"Content-Type": "text/html", "Strict-Transport-Security": "max-age=31536000",
+            "Content-Security-Policy": "frame-ancestors 'none'", "X-Content-Type-Options": "nosniff"}
     assert web.evaluate_headers("a.com", good, ["sid=1; Secure; HttpOnly"]) == []
+
+
+def test_header_checks_skip_non_html_and_analytics_cookies():
+    api = web.evaluate_headers("api.a.com", {"Content-Type": "application/json",
+                                             "Strict-Transport-Security": "max-age=1",
+                                             "X-Content-Type-Options": "nosniff"}, [])
+    assert api == []
+    html = web.evaluate_headers("a.com", {"Content-Type": "text/html; charset=utf-8"},
+                                ["_ga=GA1.2; Path=/; Secure", "sessionid=abc; Path=/; Secure",
+                                 "pref=1; Path=/"])
+    found = codes(html)
+    assert {"csp_missing", "xfo_missing", "session_cookie_not_httponly", "cookie_not_secure"} <= found
+    by_code = {f.code: f for f in html}
+    assert by_code["session_cookie_not_httponly"].evidence["cookies"] == ["sessionid"]
+    assert by_code["cookie_not_secure"].evidence["cookies"] == ["pref"]
+    # The word "secure" in a cookie value must not count as the Secure flag.
+    tricky = web.evaluate_headers("a.com", {"Content-Type": "text/html"}, ["mode=secure; Path=/"])
+    assert "cookie_not_secure" in codes(tricky)
