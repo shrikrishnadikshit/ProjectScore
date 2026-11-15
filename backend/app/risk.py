@@ -8,6 +8,10 @@ recalibrated. It is a planning estimate, not an actuarial or insurance figure.
 
 import math
 import os
+import threading
+import time
+
+import httpx
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_validator
@@ -18,6 +22,37 @@ from . import auth, db
 from .models import RiskInput, Score, User
 
 router = APIRouter(prefix="/api")
+
+# Rupees per US dollar and per euro. Fetched daily from the European Central Bank reference rates
+# (via frankfurter.app, free, no key); these fallbacks are used if the feed cannot be reached.
+FALLBACK_RATES = {"USD": float(os.environ.get("RISK_USD_INR", "88.0")),
+                  "EUR": float(os.environ.get("RISK_EUR_INR", "102.0"))}
+_rates_lock = threading.Lock()
+_rates: dict = {"loaded": 0.0, "rates": None, "date": None}
+
+
+def inr_rates() -> dict:
+    """{'USD': rupees per dollar, 'EUR': rupees per euro, 'date': ..., 'source': ...}"""
+    with _rates_lock:
+        if time.time() - _rates["loaded"] < 12 * 3600 and _rates["rates"]:
+            return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
+        try:
+            resp = httpx.get("https://api.frankfurter.app/latest", params={"from": "INR", "to": "USD,EUR"}, timeout=10.0)
+            resp.raise_for_status()
+            data = resp.json()
+            _rates["rates"] = {k: round(1 / v, 4) for k, v in data["rates"].items() if k in ("USD", "EUR") and v}
+            _rates["date"], _rates["loaded"] = data.get("date"), time.time()
+            return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
+        except (httpx.HTTPError, ValueError, KeyError, ZeroDivisionError):
+            _rates["loaded"] = time.time() - 12 * 3600 + 900  # retry in 15 minutes
+            if _rates["rates"]:
+                return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
+            return {**FALLBACK_RATES, "date": None, "source": "fixed fallback rate"}
+
+
+def convert(crore: float, rates: dict) -> dict:
+    rupees = crore * 1e7
+    return {"INR": round(rupees), "USD": round(rupees / rates["USD"]), "EUR": round(rupees / rates["EUR"])}
 
 # Average total cost of a data breach in India, in crore rupees (IBM Cost of a Data Breach Report 2024:
 # INR 195 million). Override with RISK_BREACH_COST_CRORE when a newer figure is published.
@@ -63,7 +98,15 @@ def _result(session: Session, user: User, entity_id: int) -> dict:
     revenue, sens = (inp.revenue_crore, inp.sensitivity) if inp else (None, "standard")
     out = {"revenue_crore": revenue, "sensitivity": sens}
     if latest:
-        out.update(estimate(latest.overall, revenue, sens))
+        est = estimate(latest.overall, revenue, sens)
+        rates = inr_rates()
+        est["currencies"] = {
+            "expected_loss": convert(est["expected_loss_crore"], rates),
+            "range": [convert(v, rates) for v in est["range_crore"]],
+            "impact": convert(est["impact_crore"], rates),
+        }
+        est["exchange_rates"] = rates
+        out.update(est)
         out["score"] = latest.overall
     return out
 

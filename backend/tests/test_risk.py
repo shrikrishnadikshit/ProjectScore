@@ -26,7 +26,13 @@ def test_estimate_shape():
     assert big["range_crore"][0] < big["expected_loss_crore"] < big["range_crore"][1]
 
 
-def test_risk_inputs_are_per_organisation():
+def test_currency_conversion():
+    c = risk.convert(1.0, {"USD": 80.0, "EUR": 100.0})
+    assert c == {"INR": 10_000_000, "USD": 125_000, "EUR": 100_000}
+
+
+def test_risk_inputs_are_per_organisation(monkeypatch):
+    monkeypatch.setattr(risk, "inr_rates", lambda: {"USD": 80.0, "EUR": 100.0, "date": None, "source": "test"})
     c, o = TestClient(main.app), TestClient(main.app)
     c.post("/api/auth/login", json={"email": "user@c.example", "password": PASSWORD})
     o.post("/api/auth/login", json={"email": "user@o.example", "password": PASSWORD})
@@ -35,7 +41,9 @@ def test_risk_inputs_are_per_organisation():
     s = db.SessionLocal()
     scan_entity(s, s.get(Entity, eid), lambda e: ([], {"tls": 1}))
     s.close()
-    assert c.get(f"/api/entities/{eid}/risk").json()["expected_loss_crore"] > 0
+    got = c.get(f"/api/entities/{eid}/risk").json()
+    assert got["expected_loss_crore"] > 0
+    assert got["currencies"]["expected_loss"]["USD"] == round(got["expected_loss_crore"] * 1e7 / 80)
     assert c.put(f"/api/entities/{eid}/risk", json={"revenue_crore": -5}).status_code == 422
     r = c.put(f"/api/entities/{eid}/risk", json={"revenue_crore": 5000, "sensitivity": "high"}).json()
     assert r["revenue_crore"] == 5000 and r["sensitivity"] == "high"

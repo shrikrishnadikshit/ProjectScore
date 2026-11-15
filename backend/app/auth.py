@@ -101,7 +101,34 @@ def end_session(session: Session, request: Request, response: Response) -> None:
     response.delete_cookie(COOKIE_NAME, path="/")
 
 
+API_KEY_PREFIX = "ps_"
+
+
+def _api_key_user(request: Request, session: Session, header: str) -> User:
+    """Read-only access with an organisation API key: `Authorization: Bearer ps_...`."""
+    from .models import ApiKey
+
+    key = header[7:].strip()
+    row = session.scalars(select(ApiKey).where(ApiKey.key_hash == _token_hash(key))).first() if key.startswith(API_KEY_PREFIX) else None
+    if row is None or row.revoked:
+        raise HTTPException(401, "invalid API key")
+    user = session.get(User, row.user_id)
+    if user is None or not user.active or user.org_id != row.org_id:
+        raise HTTPException(401, "invalid API key")
+    if request.method != "GET":
+        raise HTTPException(403, "API keys are read-only")
+    now = datetime.now(timezone.utc)
+    last = row.last_used_at.replace(tzinfo=timezone.utc) if row.last_used_at and row.last_used_at.tzinfo is None else row.last_used_at
+    if last is None or now - last > timedelta(minutes=5):
+        row.last_used_at = now
+        session.commit()
+    return user
+
+
 def current_user(request: Request, session: Session = Depends(db.get_session)) -> User:
+    header = request.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):
+        return _api_key_user(request, session, header)
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise HTTPException(401, "not signed in")
