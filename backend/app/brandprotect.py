@@ -88,8 +88,12 @@ def classify_apps(results: list[dict], name: str, domain: str) -> list[dict]:
             continue
         seller = r.get("sellerName") or r.get("artistName") or ""
         seller_url = (r.get("sellerUrl") or "").lower()
-        official = (bool(seller_url) and re.search(rf"(^|[/.]){re.escape(domain)}(/|$)", re.sub(r"^https?://", "", seller_url).split("?")[0] + "/") is not None) \
-            or (_norm(name) and _norm(name) in _norm(seller)) or label in _norm(seller)
+        # The seller's own website counts only as a bare home page: many independent developers link to a
+        # page on a big platform (for example github.com/someone), which says nothing about who they are.
+        m = re.match(r"^(?:https?://)?([^/?#]+)/?$", seller_url.strip())
+        host = m.group(1).removeprefix("www.") if m else ""
+        official = bool(host) and (host == domain or host.endswith("." + domain)) \
+            or bool(_norm(name)) and _norm(name) in _norm(seller) or label in _norm(seller)
         out.append({"store": "Apple App Store", "name": title, "publisher": seller, "url": r.get("trackViewUrl"),
                     "official": bool(official), "bundle": r.get("bundleId")})
     out.sort(key=lambda a: (a["official"], a["name"]))
@@ -230,8 +234,8 @@ def summary(row: BrandWatch | None, findings: list[Finding]) -> dict:
     sites.sort(key=lambda s: (rank.get(s["severity"], 4), s["domain"]))
     apps = row.apps if row else []
     unofficial = [a for a in apps if not a["official"]]
-    level = ("high" if any(s["severity"] == "high" for s in sites) or (row and row.news)
-             else "medium" if any(s["severity"] == "medium" for s in sites) or unofficial else "low")
+    level = ("high" if any(s["severity"] == "high" for s in sites)
+             else "medium" if any(s["severity"] == "medium" for s in sites) or unofficial or (row and row.news) else "low")
     return {"level": level, "fake_sites": sites, "apps": apps, "unofficial_apps": len(unofficial),
             "news": row.news if row else [], "social": row.social if row else [],
             "checked_at": row.checked_at.isoformat() if row else None, "report": REPORT,
