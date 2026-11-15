@@ -6,6 +6,7 @@ import History from '../components/History.jsx'
 import Frameworks from '../components/Frameworks.jsx'
 import Insights from '../components/Insights.jsx'
 import Questionnaires from '../components/Questionnaires.jsx'
+import RiskEstimate from '../components/RiskEstimate.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -124,6 +125,8 @@ export default function EntityDetail() {
       </section>
 
       {latest && <Insights entity={entity} user={user} version={latest.created_at} />}
+
+      {latest && <RiskEstimate entityId={id} version={latest.created_at} />}
 
       <section className="card">
         <h2>Risk factors</h2>

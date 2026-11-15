@@ -256,3 +256,17 @@ class Questionnaire(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RiskInput(Base):
+    """An organisation's inputs for estimating a company's cyber risk in rupees."""
+
+    __tablename__ = "risk_inputs"
+    __table_args__ = (UniqueConstraint("org_id", "entity_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"))
+    revenue_crore: Mapped[float | None] = mapped_column(Float)
+    sensitivity: Mapped[str] = mapped_column(String(20), default="standard")  # low, standard, high
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

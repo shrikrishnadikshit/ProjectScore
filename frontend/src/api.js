@@ -70,6 +70,8 @@ export const api = {
   reviewQuestionnaire: (id, note) => request(`/questionnaires/${id}/review`, { method: 'POST', body: JSON.stringify({ note }) }),
   publicQuestionnaire: (token) => request(`/public/questionnaire/${encodeURIComponent(token)}`),
   savePublicQuestionnaire: (token, answers, submit) => request(`/public/questionnaire/${encodeURIComponent(token)}`, { method: 'PUT', body: JSON.stringify({ answers, submit }) }),
+  getRisk: (id) => request(`/entities/${id}/risk`),
+  setRisk: (id, data) => request(`/entities/${id}/risk`, { method: 'PUT', body: JSON.stringify(data) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }
