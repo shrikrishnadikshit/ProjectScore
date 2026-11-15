@@ -147,12 +147,19 @@ def fetch_stealers(domain: str) -> dict | None:
     return _cached("stealer", domain, go)
 
 
+_HOST = re.compile(r"^(?:https?://)?([a-z0-9•*](?:[a-z0-9•*-]{0,62}[a-z0-9•*])?(?:\.[a-z0-9•*](?:[a-z0-9•*-]{0,62}[a-z0-9•*])?)+)(?:[/:?#]|$)", re.I)
+
+
 def stealer_summary(data: dict) -> dict:
     fams = {k: v for k, v in (data.get("stealerFamilies") or {}).items() if k != "total" and isinstance(v, int)}
-    hosts = []
-    for u in ((data.get("data") or {}).get("employees_urls") or [])[:10]:
-        if isinstance(u, dict) and u.get("url"):
-            hosts.append({"url": u["url"], "count": u.get("occurrence")})
+    # Keep only the host name of each login page. The raw entries can contain user names or passwords,
+    # which we must never store or show.
+    counts: dict[str, int] = {}
+    for u in ((data.get("data") or {}).get("employees_urls") or []):
+        m = _HOST.match(str(u.get("url") or "")) if isinstance(u, dict) else None
+        if m and "@" not in m.group(1):
+            counts[m.group(1).lower()] = counts.get(m.group(1).lower(), 0) + int(u.get("occurrence") or 1)
+    hosts = [{"url": h, "count": c} for h, c in sorted(counts.items(), key=lambda x: -x[1])[:10]]
     return {"employees": int(data.get("employees") or 0), "users": int(data.get("users") or 0),
             "third_parties": int(data.get("third_parties") or 0),
             "last_employee": data.get("last_employee_compromised"), "last_user": data.get("last_user_compromised"),

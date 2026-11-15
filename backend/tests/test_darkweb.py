@@ -35,7 +35,10 @@ LEAKS = [
 ]
 STEALERS = {"total": 120, "employees": 12, "users": 108, "third_parties": 3, "last_employee_compromised": "2026-11-01T00:00:00.000Z",
             "last_user_compromised": "2026-11-10T00:00:00.000Z", "stealerFamilies": {"total": 120, "RedLine": 70, "Lumma": 40},
-            "data": {"employees_urls": [{"occurrence": 5, "type": "Employee", "url": "https://vpn.acme.com"}]}}
+            "data": {"employees_urls": [{"occurrence": 5, "type": "Employee", "url": "https://vpn.acme.com/login"},
+                                         {"occurrence": 2, "type": "Employee", "url": "https://vpn.acme.com/x"},
+                                         {"occurrence": 1, "type": "Employee", "url": "https://dash.acme.com/:bob@mail.com:Secret1"},
+                                         {"occurrence": 1, "type": "Employee", "url": "bob@mail.com:pw@acme.com"}]}}
 
 
 def test_leak_matching():
@@ -49,6 +52,9 @@ def test_stealers():
     assert f["infostealer_employees"].severity == "high"
     assert f["infostealer_employees"].evidence["families"] == ["RedLine", "Lumma"]
     assert f["infostealer_customers"].severity == "low"
+    logins = f["infostealer_employees"].evidence["employee_logins"]
+    assert logins == [{"url": "vpn.acme.com", "count": 7}, {"url": "dash.acme.com", "count": 1}]
+    assert "Secret1" not in str(f["infostealer_employees"].evidence) and "bob" not in str(f["infostealer_employees"].evidence)
     old = dict(STEALERS, employees=2, last_employee_compromised="2024-01-01T00:00:00Z")
     assert {x.code: x for x in feeds.evaluate_stealers(old, "acme.com", NOW)}["infostealer_employees"].severity == "low"
     assert feeds.evaluate_stealers({"employees": 0, "users": 0}, "acme.com", NOW) == []
