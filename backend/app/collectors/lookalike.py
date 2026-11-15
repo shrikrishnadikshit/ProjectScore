@@ -11,6 +11,9 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 
 from . import RawFinding
+
+# Severity is deliberately low: many look-alikes are parked by registrars or owned by the company itself
+# under other nameservers, and we cannot tell those apart passively. They are listed for review.
 from .dns_util import LookupFailed, resolve
 
 FACTOR = "brand"
@@ -85,10 +88,10 @@ def evaluate(domain: str, registered: dict[str, dict], own_ns: set[str]) -> list
             continue  # same nameservers as the company: most likely its own defensive registration
         if info["mx"]:
             findings.append(RawFinding(FACTOR, "lookalike_domain_mail", f"Look-alike domain {d} can receive and send email",
-                                       "medium", d, {"lookalike_of": domain, **info}, 0.5))
+                                       "low", d, {"lookalike_of": domain, **info}, 0.5))
         elif info["a"]:
             findings.append(RawFinding(FACTOR, "lookalike_domain_web", f"Look-alike domain {d} is registered and hosts a website",
-                                       "low", d, {"lookalike_of": domain, **info}, 0.5))
+                                       "info", d, {"lookalike_of": domain, **info}, 0.5))
         if len(findings) >= MAX_FINDINGS:
             break
     return findings

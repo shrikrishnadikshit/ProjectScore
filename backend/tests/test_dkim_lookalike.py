@@ -44,7 +44,7 @@ def test_lookalike_evaluate_skips_defensive():
            "acmeebank.com": {"ns": ["ns.reg.example"], "mx": [], "a": []}}
     fs = lookalike.evaluate("acmebank.com", reg, {"ns1.acmebank.com"})
     assert [(f.code, f.asset_value, f.severity) for f in fs] == [
-        ("lookalike_domain_mail", "acmbank.com", "medium"), ("lookalike_domain_web", "acme-bank.com", "low")]
+        ("lookalike_domain_mail", "acmbank.com", "low"), ("lookalike_domain_web", "acme-bank.com", "info")]
 
 
 def test_lookalike_collect(monkeypatch):

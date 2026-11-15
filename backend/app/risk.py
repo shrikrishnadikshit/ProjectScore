@@ -24,7 +24,7 @@ from .models import RiskInput, Score, User
 router = APIRouter(prefix="/api")
 
 # Rupees per US dollar and per euro. Fetched daily from the European Central Bank reference rates
-# (via frankfurter.app, free, no key); these fallbacks are used if the feed cannot be reached.
+# (via frankfurter.dev, free, no key); these fallbacks are used if the feed cannot be reached.
 FALLBACK_RATES = {"USD": float(os.environ.get("RISK_USD_INR", "88.0")),
                   "EUR": float(os.environ.get("RISK_EUR_INR", "102.0"))}
 _rates_lock = threading.Lock()
@@ -37,7 +37,8 @@ def inr_rates() -> dict:
         if time.time() - _rates["loaded"] < 12 * 3600 and _rates["rates"]:
             return {**_rates["rates"], "date": _rates["date"], "source": "European Central Bank"}
         try:
-            resp = httpx.get("https://api.frankfurter.app/latest", params={"from": "INR", "to": "USD,EUR"}, timeout=10.0)
+            resp = httpx.get("https://api.frankfurter.dev/v1/latest", params={"base": "INR", "symbols": "USD,EUR"},
+                             timeout=10.0, follow_redirects=True)
             resp.raise_for_status()
             data = resp.json()
             _rates["rates"] = {k: round(1 / v, 4) for k, v in data["rates"].items() if k in ("USD", "EUR") and v}

@@ -101,7 +101,7 @@ administrator's login. That account is created on first start.
 - Vendor questionnaires: admins send a 24-question security questionnaire from a company page; the vendor
   answers via a private link (no account, 60-day expiry). Answers are scored, and "Yes" answers that open
   scan findings contradict are flagged.
-- Cyber risk estimate per company in rupees, US dollars and euros (ECB rates via frankfurter.app, daily;
+- Cyber risk estimate per company in rupees, US dollars and euros (ECB rates via frankfurter.dev, daily;
   fallback `RISK_USD_INR`, `RISK_EUR_INR`). Inputs: annual revenue and data sensitivity. Assumptions are shown
   in the app and tunable with `RISK_BREACH_COST_CRORE` and `RISK_BASE_PROBABILITY`.
 - Read-only API keys (Team page). Send `Authorization: Bearer ps_...`; keys can only make GET requests.

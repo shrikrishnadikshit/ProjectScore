@@ -108,6 +108,9 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
         if key in previous:
             previous[key].last_seen = now
             previous[key].evidence = r.evidence
+            # Rules get recalibrated, so the latest severity and wording win.
+            previous[key].severity, previous[key].title = r.severity, r.title
+            previous[key].detection_confidence = r.detection_confidence
         else:
             finding = Finding(entity_id=entity.id, asset_value=r.asset_value, risk_factor=r.risk_factor,
                               code=r.code, title=r.title, severity=r.severity,
