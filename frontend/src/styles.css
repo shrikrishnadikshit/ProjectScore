@@ -116,7 +116,7 @@ h2 { font-size: 16px; margin: 0 0 14px; }
 .tile-value.warn { color: var(--grade-d); }
 
 .table-tools { display: flex; justify-content: space-between; gap: 12px; padding: 16px 20px; flex-wrap: wrap; }
-.search, select, input {
+.search, select, input, textarea {
   font: inherit; color: var(--text); background: var(--surface-2);
   border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px;
 }
@@ -221,3 +221,12 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .status-off { color: var(--grade-f); font-size: 12px; font-weight: 600; }
 .row-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 .btn.tiny { padding: 4px 10px; font-size: 13px; font-weight: 500; }
+
+.public { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+.public .brand { margin-bottom: 24px; }
+.public h1 { margin-bottom: 12px; }
+.public h2 { margin-top: 8px; }
+.public ul { padding-left: 20px; margin: 8px 0 0; }
+.public li { margin-bottom: 6px; }
+.public .mono { background: var(--surface-2); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+.hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }

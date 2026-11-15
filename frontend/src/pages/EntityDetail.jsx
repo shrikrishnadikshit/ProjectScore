@@ -80,10 +80,11 @@ export default function EntityDetail() {
         </div>
         <div className="row-actions">
           {entity.score != null && <a className="btn ghost" href={`/api/entities/${id}/report.pdf`}>Download PDF report</a>}
-          <button className="btn primary" onClick={rescan} disabled={scanning}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
+          <button className="btn primary" onClick={rescan} disabled={scanning || entity.opted_out}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
         </div>
       </div>
 
+      {entity.opted_out && <div className="banner">This company's domain owner has opted out of scanning. Existing results are shown, but it will not be rescanned.</div>}
       {notice && <div className="banner">{notice}</div>}
       {scanning && <div className="banner">Scan in progress. This usually takes one to three minutes; the page updates by itself.</div>}
 

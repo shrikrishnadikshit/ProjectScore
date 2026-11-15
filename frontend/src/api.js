@@ -31,6 +31,9 @@ export const api = {
   changePassword: (current_password, new_password) =>
     request('/auth/password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   listUsers: () => request('/users'),
+  requestOptOut: (data) => request('/public/opt-out', { method: 'POST', body: JSON.stringify(data) }),
+  listOptOuts: () => request('/opt-outs'),
+  decideOptOut: (id, status) => request(`/opt-outs/${id}`, { method: 'POST', body: JSON.stringify({ status }) }),
   listOrganizations: () => request('/organizations'),
   addUser: (data) => request('/users', { method: 'POST', body: JSON.stringify(data) }),
   updateUser: (id, data) => request(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),

@@ -35,6 +35,7 @@ export default function Login({ onSignedIn }) {
         {error && <p className="error">{error}</p>}
         <button className="btn primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
         <p className="muted small">Access is by invitation. Ask your administrator for an account.</p>
+        <p className="muted small"><a href="/scanner">About our scanner and opting out</a></p>
       </form>
     </div>
   )

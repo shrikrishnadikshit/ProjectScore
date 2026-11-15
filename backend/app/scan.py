@@ -55,8 +55,16 @@ class NothingAssessed(Exception):
     pass
 
 
+class OptedOut(NothingAssessed):
+    """The domain owner asked not to be scanned and the request was approved."""
+
+
 def scan_entity(session: Session, entity: Entity, collector=run_collectors,
                 discover=None) -> Score:
+    from .optout import is_opted_out
+
+    if is_opted_out(session, entity.primary_domain):
+        raise OptedOut(f"{entity.primary_domain} has opted out of scanning")
     discover_assets(session, entity, discover)
     raw, coverage = collector(entity)
     if not any(coverage.values()):

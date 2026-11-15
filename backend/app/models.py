@@ -129,3 +129,19 @@ class PortfolioItem(Base):
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     entity: Mapped[Entity] = relationship()
+
+
+class OptOutRequest(Base):
+    """A request from a domain owner not to be scanned (BRS 4.4). Approved requests exclude
+    the domain and all its subdomains from scanning."""
+
+    __tablename__ = "opt_out_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain: Mapped[str] = mapped_column(String(255), index=True)
+    contact_email: Mapped[str] = mapped_column(String(255))
+    organisation: Mapped[str | None] = mapped_column(String(255))
+    reason: Mapped[str | None] = mapped_column(String(2000))
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, approved, rejected
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from . import auth, db, scheduler
 from .models import Entity, Finding, PortfolioItem, Score, User
 from .scan import NothingAssessed, scan_entity
+from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
 
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
@@ -178,6 +179,7 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
     out = _entity_out(item.entity, item, latest)
     out["factors"] = latest.factors if latest else {}
     out["assets"] = sorted(a.value for a in item.entity.assets)
+    out["opted_out"] = is_opted_out(session, item.entity.primary_domain)
     out["findings"] = [
         {"id": f.id, "risk_factor": f.risk_factor, "code": f.code, "title": f.title, "severity": f.severity,
          "asset": f.asset_value, "status": f.status, "evidence": f.evidence,
@@ -233,7 +235,9 @@ def _scan_job(entity_id: int) -> None:
 @api.post("/entities/{entity_id}/scan", status_code=202)
 def start_scan(entity_id: int, tasks: BackgroundTasks, user: User = Depends(auth.current_user),
                session: Session = Depends(db.get_session)) -> dict:
-    _portfolio_item(session, user, entity_id)
+    item = _portfolio_item(session, user, entity_id)
+    if is_opted_out(session, item.entity.primary_domain):
+        raise HTTPException(409, "this company has opted out of scanning, so it cannot be rescanned")
     latest = _latest(session, entity_id)
     if latest is not None:
         created = latest.created_at if latest.created_at.tzinfo else latest.created_at.replace(tzinfo=timezone.utc)
@@ -246,6 +250,7 @@ def start_scan(entity_id: int, tasks: BackgroundTasks, user: User = Depends(auth
 
 app.include_router(api)
 app.include_router(users_router)
+app.include_router(optout_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

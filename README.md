@@ -64,6 +64,9 @@ administrator's login. That account is created on first start.
 - Every monitored company is rescanned automatically every 7 days (`RESCAN_DAYS`). The scheduler runs
   inside the web server, so keep a single instance or move it to a worker before scaling out.
 - Each company page has a PDF report download.
+- Public scanner page at `/scanner` explains the scanner and takes opt-out requests; the owner reviews
+  them on the Opt-outs page, and approved domains (and their subdomains) are never scanned. The scanner's
+  user agent links to this page; set `SCANNER_INFO_URL` if the site moves to its own domain.
 - Users can also be added from a shell on the server:
   `python -m app.admin create-user --org "Client Ltd" --email person@client.com [--admin]`
 - Admins can also add users to their own organisation with `POST /api/users`.

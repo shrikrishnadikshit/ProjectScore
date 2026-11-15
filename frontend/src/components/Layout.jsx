@@ -31,6 +31,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
+          {user.role === 'owner' && <NavLink to="/opt-outs">Opt-outs</NavLink>}
         </nav>
         <div className="account">
           <NavLink to="/account" className="muted small account-org" title={user.email}>{user.organization}</NavLink>

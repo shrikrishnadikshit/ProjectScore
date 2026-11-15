@@ -6,7 +6,11 @@ import httpx
 
 from . import RawFinding, software
 
-USER_AGENT = "ProjectScore-Scanner/0.1 (+passive security rating; opt-out page to follow)"
+import os
+
+# Identifies the scanner and links to the public page that explains it and offers an opt-out.
+SCANNER_INFO_URL = os.getenv("SCANNER_INFO_URL", "https://projectscore.onrender.com/scanner")
+USER_AGENT = f"ProjectScore-Scanner/1.0 (+{SCANNER_INFO_URL}; passive security rating)"
 
 # Page-level protections only matter for HTML documents, not APIs, images or downloads.
 HTML_ONLY = {"content-security-policy", "x-frame-options"}
