@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useOutletContext } from 'react-router-dom'
 import { api } from '../api.js'
+import ApiKeys from '../components/ApiKeys.jsx'
 
 function TempPassword({ result, onClose }) {
   const [copied, setCopied] = useState(false)
@@ -138,6 +139,7 @@ export default function Team() {
           </table>
         </div>
       </div>
+      <ApiKeys />
     </>
   )
 }

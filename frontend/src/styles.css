@@ -307,3 +307,9 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
   .stats { grid-template-columns: 1fr; }
   .stat { font-size: 24px; }
 }
+.form-inline { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.form-inline input { flex: 1 1 220px; }
+.key-box { background: var(--surface-2); padding: 8px; border-radius: 6px; margin: 6px 0; word-break: break-all; user-select: all; }
+.divider { display: flex; align-items: center; gap: 10px; text-align: center; }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+.sso-btn { text-align: center; justify-content: center; }

@@ -7,6 +7,7 @@ import Frameworks from '../components/Frameworks.jsx'
 import Insights from '../components/Insights.jsx'
 import Questionnaires from '../components/Questionnaires.jsx'
 import RiskEstimate from '../components/RiskEstimate.jsx'
+import Incidents from '../components/Incidents.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -189,6 +190,8 @@ export default function EntityDetail() {
       </section>
 
       <Questionnaires entityId={id} user={user} />
+
+      {user.role === 'owner' && <Incidents entityId={id} />}
 
       {latest && <Frameworks entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 

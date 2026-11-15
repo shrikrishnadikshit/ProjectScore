@@ -72,6 +72,12 @@ export const api = {
   savePublicQuestionnaire: (token, answers, submit) => request(`/public/questionnaire/${encodeURIComponent(token)}`, { method: 'PUT', body: JSON.stringify({ answers, submit }) }),
   getRisk: (id) => request(`/entities/${id}/risk`),
   setRisk: (id, data) => request(`/entities/${id}/risk`, { method: 'PUT', body: JSON.stringify(data) }),
+  listApiKeys: () => request('/api-keys'),
+  createApiKey: (name) => request('/api-keys', { method: 'POST', body: JSON.stringify({ name }) }),
+  revokeApiKey: (id) => request(`/api-keys/${id}/revoke`, { method: 'POST' }),
+  ssoProviders: () => request('/auth/sso/providers'),
+  listIncidents: (id) => request(`/entities/${id}/incidents`),
+  recordIncident: (id, data) => request(`/entities/${id}/incidents`, { method: 'POST', body: JSON.stringify(data) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }

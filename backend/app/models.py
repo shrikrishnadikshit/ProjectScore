@@ -286,3 +286,19 @@ class ApiKey(Base):
     revoked: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Incident(Base):
+    """A real security incident at a rated company, recorded by the owner to test whether scores predict them."""
+
+    __tablename__ = "incidents"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    occurred_on: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    kind: Mapped[str] = mapped_column(String(40))  # breach, ransomware, outage, fraud, other
+    description: Mapped[str] = mapped_column(String(2000))
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    score_before: Mapped[int | None] = mapped_column(Integer)
+    recorded_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

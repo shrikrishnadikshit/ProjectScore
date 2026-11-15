@@ -101,6 +101,14 @@ administrator's login. That account is created on first start.
 - Vendor questionnaires: admins send a 24-question security questionnaire from a company page; the vendor
   answers via a private link (no account, 60-day expiry). Answers are scored, and "Yes" answers that open
   scan findings contradict are flagged.
+- Cyber risk estimate per company in rupees, US dollars and euros (ECB rates via frankfurter.app, daily;
+  fallback `RISK_USD_INR`, `RISK_EUR_INR`). Inputs: annual revenue and data sensitivity. Assumptions are shown
+  in the app and tunable with `RISK_BREACH_COST_CRORE` and `RISK_BASE_PROBABILITY`.
+- Read-only API keys (Team page). Send `Authorization: Bearer ps_...`; keys can only make GET requests.
+- Single sign-on with Google and Microsoft for existing accounts (no auto-sign-up). Set `APP_URL`,
+  `SECRET_KEY`, `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` and/or `MICROSOFT_CLIENT_ID`/`MICROSOFT_CLIENT_SECRET`/
+  `MICROSOFT_ALLOWED_TENANTS`; redirect URI is `{APP_URL}/api/auth/sso/<google|microsoft>/callback`.
+- Incident log (owner) on each company page and `/api/backtest`, to check over time that scores predict incidents.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

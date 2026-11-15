@@ -47,6 +47,14 @@ def verify_password(password: str, stored: str) -> bool:
 _DUMMY_HASH = hash_password(secrets.token_hex(8))
 
 
+_PROCESS_SECRET = secrets.token_hex(32)
+
+
+def secret_key() -> str:
+    """Signing key for short-lived cookies. Set SECRET_KEY to keep it stable across restarts."""
+    return os.environ.get("SECRET_KEY") or _PROCESS_SECRET
+
+
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 

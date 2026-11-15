@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
 export default function Login({ onSignedIn }) {
@@ -6,6 +6,19 @@ export default function Login({ onSignedIn }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [providers, setProviders] = useState([])
+  useEffect(() => {
+    api.ssoProviders().then(setProviders).catch(() => {})
+    const code = new URLSearchParams(window.location.search).get('sso_error')
+    if (code) {
+      setError({
+        no_account: 'There is no ProjectScore account for that email address. Ask your administrator to invite you.',
+        cancelled: 'Sign-in was cancelled.',
+        expired: 'The sign-in took too long. Please try again.',
+      }[code] ?? 'Single sign-on failed. Please try again or use your password.')
+      window.history.replaceState(null, '', window.location.pathname)
+    }
+  }, [])
 
   async function submit(e) {
     e.preventDefault()
@@ -34,6 +47,10 @@ export default function Login({ onSignedIn }) {
         <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        {providers.length > 0 && <>
+          <div className="divider muted small"><span>or</span></div>
+          {providers.map((p) => <a key={p.id} className="btn ghost sso-btn" href={`/api/auth/sso/${p.id}/start`}>Sign in with {p.label}</a>)}
+        </>}
         <p className="muted small">Access is by invitation. Ask your administrator for an account.</p>
         <p className="muted small">Not a customer yet? <a href="/free-report">Get a free rating for your organisation</a>.</p>
         <p className="muted small"><a href="/scanner">About our scanner and opting out</a></p>
