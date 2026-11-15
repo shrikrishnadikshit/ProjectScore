@@ -40,6 +40,7 @@ export default function Scanner() {
           <li>Public DNS records, such as SPF, DMARC, MTA-STS and DNSSEC.</li>
           <li>Public Certificate Transparency logs, to find your subdomains.</li>
           <li>One normal HTTPS request per host to read the certificate and response headers.</li>
+          <li>Public threat-intelligence lists (abuse.ch, Spamhaus DROP, blocklist.de), to spot hosts that are serving malware or have been taken over.</li>
         </ul>
       </section>
 

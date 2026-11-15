@@ -79,6 +79,9 @@ administrator's login. That account is created on first start.
 - Public scanner page at `/scanner` explains the scanner and takes opt-out requests; the owner reviews
   them on the Opt-outs page, and approved domains (and their subdomains) are never scanned. The scanner's
   user agent links to this page; set `SCANNER_INFO_URL` if the site moves to its own domain.
+- Compromise signals: hostnames and IPs are matched against free public threat feeds (abuse.ch Feodo
+  Tracker and URLhaus, Spamhaus DROP, blocklist.de), cached for 6 hours. A botnet or malware hit caps the
+  score at 640. Set `COMPROMISE_FEEDS=off` to disable.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.
