@@ -333,3 +333,11 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .fair-curve { display: grid; gap: 4px; margin: 8px 0; }
 .fair-row { display: grid; grid-template-columns: minmax(90px, 140px) 1fr 52px; gap: 8px; align-items: center; font-size: 13px; }
 .fair-bar { height: 10px; border-radius: 3px; background: var(--primary); min-width: 2px; }
+.prio { display: inline-block; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 4px; color: var(--surface); }
+.prio-1 { background: var(--critical); }
+.prio-2 { background: var(--high); }
+.prio-3 { background: var(--medium); }
+.prio-4 { background: var(--info); }
+.matrix { border-collapse: collapse; font-size: 13px; }
+.matrix th, .matrix td { padding: 6px 10px; text-align: center; border: 1px solid var(--border); }
+.matrix td.hot { font-weight: 700; }

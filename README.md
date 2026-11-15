@@ -132,6 +132,14 @@ administrator's login. That account is created on first start.
 - MITRE ATT&CK techniques shown on every finding.
 - Vendor certificates and audit reports (ISO 27001, SOC 2, PCI DSS, CERT-In audit...) with expiry status,
   reminders 30 days ahead, and a warning when certified vendors show serious scan findings.
+- System importance and issue priority: each host is rated high, medium or low value (login or payment
+  pages, mail servers, remote access, names like vpn/sso/portal; interactive apps; static pages), and every
+  issue gets P1 to P4 from severity x value, with a matrix on the company page.
+- Hosting map: provider (ASN) and country of each system from Team Cymru's free IP-to-ASN DNS service, with
+  systems outside India and in high-risk countries (sanctions / FATF call-for-action) highlighted.
+- Vendor policy per tier (minimum score, critical and P1 issue limits, ransomware ceiling, required
+  certificate, no high-risk hosting, rating age); the Policy page lists every vendor that falls short.
+- Governance checks: security.txt and a privacy policy link on the home page.
 - Source code reviews with free open-source scanners: Gitleaks (leaked secrets), OSV-Scanner (vulnerable
   libraries with CVEs) and Bandit (insecure Python). Admins give a public GitHub/GitLab/Bitbucket link or
   upload a zip (50 MB). Code is only read, never run, and is deleted when the review ends; only findings

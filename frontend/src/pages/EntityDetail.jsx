@@ -12,6 +12,7 @@ import FixPlan from '../components/FixPlan.jsx'
 import Vendors from '../components/Vendors.jsx'
 import Ransomware from '../components/Ransomware.jsx'
 import Certificates from '../components/Certificates.jsx'
+import Systems from '../components/Systems.jsx'
 import VendorShares from '../components/VendorShares.jsx'
 
 const POLL_MS = 3000
@@ -83,7 +84,7 @@ export default function EntityDetail() {
   const latest = scores[scores.length - 1]
   const factors = Object.entries(entity.factors).sort((a, b) => b[1].weight - a[1].weight)
   const findings = [...entity.findings].sort(
-    (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity))
+    (a, b) => (a.priority ?? 4) - (b.priority ?? 4) || SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity))
   const counts = SEVERITY_ORDER.map((s) => [s, findings.filter((f) => f.severity === s).length]).filter(([, n]) => n)
 
   return (
@@ -154,6 +155,8 @@ export default function EntityDetail() {
 
       {latest && <Ransomware entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 
+      {latest && <Systems entityId={id} version={`${latest.created_at}-${findings.length}`} />}
+
       {latest && <FixPlan entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 
       <section className="card table-card">
@@ -164,12 +167,13 @@ export default function EntityDetail() {
         {findings.length === 0 ? <p className="muted pad">No open findings.</p> : (
           <div className="table-scroll">
             <table>
-              <thead><tr><th>Severity</th><th>Finding</th><th>Factor</th><th>Asset</th><th>First seen</th><th></th></tr></thead>
+              <thead><tr><th>Severity</th><th title="Severity combined with how important the affected system is. P1 = fix first.">Priority</th><th>Finding</th><th>Factor</th><th>Asset</th><th>First seen</th><th></th></tr></thead>
               <tbody>
                 {findings.map((f) => (
                   <Fragment key={f.id}>
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
+                      <td><span className={`prio prio-${f.priority}`} title={f.asset_value ? `${f.asset_value}-value system` : 'system importance not yet known'}>P{f.priority}</span></td>
                       <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} />{f.attack?.length > 0 && <div className="chips" style={{ marginTop: 4 }}>{f.attack.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}</div>}</td>
                       <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
                       <td className="mono small">{f.asset}</td>

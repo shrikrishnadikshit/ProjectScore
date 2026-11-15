@@ -408,3 +408,33 @@ class VendorCertificate(Base):
     reminded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AssetProfile(Base):
+    """How important a system is, and who hosts it where (refreshed at each scan)."""
+
+    __tablename__ = "asset_profiles"
+    __table_args__ = (UniqueConstraint("entity_id", "asset"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    asset: Mapped[str] = mapped_column(String(255))          # host name or IP address
+    kind: Mapped[str] = mapped_column(String(10))            # host, ip
+    value: Mapped[str] = mapped_column(String(10))           # high, medium, low
+    reasons: Mapped[list] = mapped_column(JSON, default=list)
+    ip: Mapped[str | None] = mapped_column(String(64))
+    asn: Mapped[str | None] = mapped_column(String(20))
+    provider: Mapped[str | None] = mapped_column(String(255))
+    country: Mapped[str | None] = mapped_column(String(2))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RiskPolicy(Base):
+    """An organisation's minimum security requirements for vendors, per tier."""
+
+    __tablename__ = "risk_policies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), unique=True, index=True)
+    rules: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

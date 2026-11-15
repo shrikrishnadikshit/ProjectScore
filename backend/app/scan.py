@@ -40,7 +40,9 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     email_findings, email_assessed = email.collect(entity.primary_domain)
     dns_findings, dns_hosts = dns_health.collect(entity.primary_domain, hosts)
     tls_findings, tls_hosts = tls.collect(hosts)
-    web_findings, web_hosts, versioned_hosts = web.collect(hosts, domain=entity.primary_domain)
+    entity._web_profiles = {}
+    web_findings, web_hosts, versioned_hosts = web.collect(hosts, domain=entity.primary_domain,
+                                                            profiles=entity._web_profiles)
     # The vulnerability factor counts only hosts whose software version was visible: a hidden
     # version is not evidence of being patched, so it must not raise the score.
     net_findings, net_coverage, net_assets = network.collect(hosts, entity.name, entity.primary_domain)
@@ -168,9 +170,11 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
 
     cve_data.enrich_async(cve_data.cves_in(session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open")).all()))
+    from .assets import refresh_after_scan as refresh_assets
     from .vendors import refresh_after_scan
 
     refresh_after_scan(session, entity)
+    refresh_assets(session, entity)
     try:
         from .alerts import notify
 

@@ -1,5 +1,6 @@
 """Web security collector (risk factors 6 and 7): one GET per host, headers only."""
 
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 import httpx
@@ -62,6 +63,42 @@ def evaluate_headers(host: str, headers: dict[str, str], set_cookies: list[str])
     return findings
 
 
+_PASSWORD_RE = re.compile(r"<input[^>]+type\s*=\s*[\"']?password", re.I)
+_PAYMENT_RE = re.compile(r"checkout\.razorpay\.com|js\.stripe\.com|paytm|payu|ccavenue|cashfree|billdesk|"
+                         r"paypal\.com/sdk|cardnumber|card-number|name=[\"']?cvv|autocomplete=[\"']?cc-number", re.I)
+_FORM_RE = re.compile(r"<form\b", re.I)
+_PRIVACY_RE = re.compile(r"<a\b[^>]*>[^<]*(privacy|data protection)[^<]*</a>|href=[\"'][^\"']*privacy", re.I)
+
+
+def profile(html: str, set_cookies: list[str]) -> dict:
+    """What a page tells us about how valuable the system behind it is."""
+    session_cookie = any(any(h in _cookie_attrs(c)[0].lower() for h in SESSION_COOKIE_HINTS) for c in set_cookies)
+    return {"login": bool(_PASSWORD_RE.search(html)), "payment": bool(_PAYMENT_RE.search(html)),
+            "forms": bool(_FORM_RE.search(html)), "session": session_cookie}
+
+
+def governance(domain: str, home_html: str | None, security_txt_found: bool | None) -> list[RawFinding]:
+    findings = []
+    if security_txt_found is False:
+        findings.append(RawFinding("web_security", "security_txt_missing",
+                                   "No security.txt telling researchers how to report vulnerabilities", "info", domain,
+                                   {"expected": f"https://{domain}/.well-known/security.txt"}, 0.9))
+    # Pages built by JavaScript have little HTML to search, so only judge pages with real content.
+    if home_html is not None and len(home_html) > 5000 and not _PRIVACY_RE.search(home_html):
+        findings.append(RawFinding("web_security", "privacy_policy_missing",
+                                   "No privacy policy linked from the home page", "low", domain, {}, 0.6))
+    return findings
+
+
+def _security_txt(client: httpx.Client, domain: str) -> bool | None:
+    try:
+        r = client.get(f"https://{domain}/.well-known/security.txt")
+    except httpx.HTTPError:
+        return None
+    ok = r.status_code == 200 and "contact:" in r.text[:20000].lower() and "html" not in r.headers.get("content-type", "")
+    return ok if r.status_code in (200, 404, 403, 410) else None
+
+
 def _fetch(client: httpx.Client, host: str):
     try:
         return host, client.get(f"https://{host}/")
@@ -73,7 +110,8 @@ def _in_scope(host: str, domain: str | None) -> bool:
     return domain is None or host == domain or host.endswith("." + domain)
 
 
-def collect(hosts: list[str], workers: int = 16, domain: str | None = None) -> tuple[list[RawFinding], int, int]:
+def collect(hosts: list[str], workers: int = 16, domain: str | None = None,
+            profiles: dict | None = None) -> tuple[list[RawFinding], int, int]:
     """Returns findings, hosts assessed for web security, and hosts with identifiable software versions.
 
     Redirects are followed, and the page that is finally served is evaluated once and attributed to the
@@ -85,7 +123,9 @@ def collect(hosts: list[str], workers: int = 16, domain: str | None = None) -> t
                       event_hooks={"request": [netsafe.block_private_redirects]}) as client:
         with ThreadPoolExecutor(max_workers=workers) as pool:
             results = list(pool.map(lambda h: _fetch(client, h), hosts))
+        sec_txt = _security_txt(client, domain) if domain and domain in hosts else None
     evaluated = set()
+    home_html = None
     for _, resp in results:
         if resp is None:
             continue
@@ -98,7 +138,13 @@ def collect(hosts: list[str], workers: int = 16, domain: str | None = None) -> t
         findings += evaluate_headers(host, headers, resp.headers.get_list("set-cookie"))
         if "text/html" in headers.get("content-type", "").lower():
             findings += jslibs.evaluate(host, resp.text)
+            if profiles is not None:
+                profiles[host] = profile(resp.text, resp.headers.get_list("set-cookie"))
+            if host in (domain, f"www.{domain}") and home_html is None:
+                home_html = resp.text
         sw_findings, has_versions = software.evaluate(host, headers)
         findings += sw_findings
         versioned += has_versions
+    if domain and assessed:
+        findings += governance(domain, home_html, sec_txt)
     return findings, assessed, versioned

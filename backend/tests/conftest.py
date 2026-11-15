@@ -8,6 +8,7 @@ os.environ["COMPROMISE_FEEDS"] = "off"
 os.environ["BREACH_FEED"] = "off"
 os.environ["CVE_ENRICHMENT"] = "off"
 os.environ["VENDOR_DETECTION"] = "off"
+os.environ["ASSET_PROFILES"] = "off"
 
 import pytest  # noqa: E402
 
