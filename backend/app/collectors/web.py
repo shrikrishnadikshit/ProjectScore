@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
-from . import RawFinding, software
+from . import RawFinding, jslibs, software
 
 import os
 
@@ -94,6 +94,8 @@ def collect(hosts: list[str], workers: int = 5, domain: str | None = None) -> tu
         assessed += 1
         headers = dict(resp.headers)
         findings += evaluate_headers(host, headers, resp.headers.get_list("set-cookie"))
+        if "text/html" in headers.get("content-type", "").lower():
+            findings += jslibs.evaluate(host, resp.text)
         sw_findings, has_versions = software.evaluate(host, headers)
         findings += sw_findings
         versioned += has_versions
