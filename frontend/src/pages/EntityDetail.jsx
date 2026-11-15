@@ -9,6 +9,8 @@ import Questionnaires from '../components/Questionnaires.jsx'
 import RiskEstimate from '../components/RiskEstimate.jsx'
 import Incidents from '../components/Incidents.jsx'
 import FixPlan from '../components/FixPlan.jsx'
+import Vendors from '../components/Vendors.jsx'
+import VendorShares from '../components/VendorShares.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -192,7 +194,11 @@ export default function EntityDetail() {
         )}
       </section>
 
+      <VendorShares entityId={id} entityName={entity.name} user={user} />
+
       <Questionnaires entityId={id} user={user} />
+
+      <Vendors entityId={id} entityName={entity.name} version={latest?.created_at} />
 
       {user.role === 'owner' && <Incidents entityId={id} />}
 

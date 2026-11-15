@@ -356,3 +356,34 @@ class CodeReview(Base):
     summary: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class VendorDetection(Base):
+    """Third-party services a company visibly relies on (its vendors, i.e. your fourth parties), from public DNS."""
+
+    __tablename__ = "vendor_detections"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), unique=True, index=True)
+    vendors: Mapped[list] = mapped_column(JSON, default=list)
+    detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class VendorShare(Base):
+    """A private link that lets a vendor see the issues found on its systems and reply to each one."""
+
+    __tablename__ = "vendor_shares"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    recipient_email: Mapped[str] = mapped_column(String(320))
+    recipient_name: Mapped[str | None] = mapped_column(String(255))
+    message: Mapped[str | None] = mapped_column(String(2000))
+    responses: Mapped[dict] = mapped_column(JSON, default=dict)  # finding id -> {status, comment, at}
+    revoked: Mapped[bool] = mapped_column(default=False)
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_rescan_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -15,6 +15,8 @@ import Leads from './pages/Leads.jsx'
 import Alerts from './pages/Alerts.jsx'
 import Advisory from './pages/Advisory.jsx'
 import CodeReviews from './pages/CodeReviews.jsx'
+import FourthParties from './pages/FourthParties.jsx'
+import VendorFix from './pages/VendorFix.jsx'
 import QuestionnaireView from './pages/QuestionnaireView.jsx'
 import VendorQuestionnaire from './pages/VendorQuestionnaire.jsx'
 import './styles.css'
@@ -26,6 +28,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/scanner" element={<Scanner />} />
         <Route path="/free-report" element={<FreeReport />} />
         <Route path="/q/:token" element={<VendorQuestionnaire />} />
+        <Route path="/v/:token" element={<VendorFix />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Portfolio />} />
           <Route path="/entities/:id" element={<EntityDetail />} />
@@ -37,6 +40,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/advisory" element={<Advisory />} />
           <Route path="/code-reviews" element={<CodeReviews />} />
+          <Route path="/supply-chain" element={<FourthParties />} />
           <Route path="/code-reviews/:reviewId" element={<CodeReviews />} />
           <Route path="/questionnaires/:id" element={<QuestionnaireView />} />
           <Route path="/in-depth" element={<DeepScans />} />

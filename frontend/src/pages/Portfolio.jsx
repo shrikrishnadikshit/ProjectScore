@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { api } from '../api.js'
 import AddEntityForm from '../components/AddEntityForm.jsx'
+import ImportForm from '../components/ImportForm.jsx'
 import { GradeBadge } from '../components/Grade.jsx'
 
 const TIER_LABEL = { 1: 'Tier 1', 2: 'Tier 2', 3: 'Tier 3' }
@@ -10,6 +11,9 @@ export default function Portfolio() {
   const [entities, setEntities] = useState(null)
   const [error, setError] = useState(null)
   const [adding, setAdding] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const { user } = useOutletContext()
+  const isAdmin = user.role === 'admin' || user.role === 'owner'
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState('score')
   const navigate = useNavigate()
@@ -48,8 +52,14 @@ export default function Portfolio() {
           <h1>Vendor portfolio</h1>
           <p className="muted">Outside-in security ratings for the companies you monitor.</p>
         </div>
-        {!adding && <button className="btn primary" onClick={() => setAdding(true)}>Add company</button>}
+        <div className="row-actions">
+          {isAdmin && !importing && <button className="btn ghost" onClick={() => setImporting(true)}>Import CSV</button>}
+          <Link className="btn ghost" to="/supply-chain">Supply chain</Link>
+          {!adding && <button className="btn primary" onClick={() => setAdding(true)}>Add company</button>}
+        </div>
       </div>
+
+      {importing && <ImportForm onDone={() => api.listEntities().then(setEntities)} onCancel={() => setImporting(false)} />}
 
       {adding && (
         <AddEntityForm onCancel={() => setAdding(false)} onCreated={(e) => navigate(`/entities/${e.id}?scanning=1`)} />

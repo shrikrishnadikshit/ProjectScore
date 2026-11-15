@@ -168,6 +168,9 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
 
     cve_data.enrich_async(cve_data.cves_in(session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open")).all()))
+    from .vendors import refresh_after_scan
+
+    refresh_after_scan(session, entity)
     try:
         from .alerts import notify
 

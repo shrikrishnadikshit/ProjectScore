@@ -113,6 +113,15 @@ administrator's login. That account is created on first start.
   ranked by rating points recovered, with "score after quick fixes" and "after all fixes".
 - Advisory and remediation help: customers click "Get expert help" (fix guidance call, hands-on remediation,
   vendor follow-up, deeper assessment); the owner replies and tracks status on the Advisory page.
+- Automatic vendor detection: each scan reads the company's public DNS (MX, SPF includes, TXT domain
+  verifications, NS, subdomain CNAMEs) to list the services it relies on, e.g. Google Workspace, Microsoft 365,
+  Cloudflare, AWS, Zendesk. The Supply chain page shows which of these your vendors share (concentration risk),
+  and any of them can be added and rated in one click.
+- Vendor collaboration: share a private link (/v/<token>, 30 days, revocable) so a vendor sees its issues with
+  fix advice, replies to each (fixed, working on it, not ours, accepted risk) and can request a rescan (every 6 h).
+  Replies appear on the company page and as alerts.
+- Bulk import: admins upload a CSV (name, domain, optional tier and industry; up to 500 rows); first scans run
+  one at a time.
 - Source code reviews with free open-source scanners: Gitleaks (leaked secrets), OSV-Scanner (vulnerable
   libraries with CVEs) and Bandit (insecure Python). Admins give a public GitHub/GitLab/Bitbucket link or
   upload a zip (50 MB). Code is only read, never run, and is deleted when the review ends; only findings

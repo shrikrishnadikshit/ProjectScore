@@ -28,7 +28,7 @@ from .sso import router as sso_router
 from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
-from . import codereview
+from . import codereview, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -216,6 +216,90 @@ def add_entity(body: EntityIn, user: User = Depends(auth.current_user),
     return _entity_out(entity, item, _latest(session, entity.id))
 
 
+MAX_IMPORT_ROWS = 500
+
+
+class ImportIn(BaseModel):
+    csv: str
+    scan: bool = True
+
+
+def _import_scans(entity_ids: list[int]) -> None:
+    """First scans for imported companies, one at a time so a big import does not overload the server."""
+    import time
+
+    for entity_id in entity_ids:
+        _scan_job(entity_id)
+        time.sleep(2)
+
+
+@api.post("/entities/import")
+def import_entities(body: ImportIn, tasks: BackgroundTasks, user: User = Depends(auth.require_admin),
+                    session: Session = Depends(db.get_session)) -> dict:
+    """Adds companies from CSV text with columns name and domain, and optionally tier and industry."""
+    import csv
+    import io
+
+    from .benchmark import INDUSTRIES
+
+    if len(body.csv) > 1_000_000:
+        raise HTTPException(413, "the file is too large (limit 1 MB)")
+    rows = list(csv.reader(io.StringIO(body.csv.lstrip("\ufeff"))))
+    rows = [r for r in rows if any(c.strip() for c in r)]
+    if not rows:
+        raise HTTPException(422, "the file is empty")
+    header = [c.strip().lower() for c in rows[0]]
+    aliases = {"name": ("name", "company", "company name", "vendor", "vendor name"),
+               "domain": ("domain", "website", "primary_domain", "primary domain", "url"),
+               "tier": ("tier", "criticality"), "industry": ("industry", "sector")}
+    col = {k: next((header.index(a) for a in names if a in header), None) for k, names in aliases.items()}
+    if col["domain"] is None:
+        if len(header) >= 2 and DOMAIN_RE.match(header[1].removeprefix("https://").removeprefix("http://").split("/")[0]):
+            col = {"name": 0, "domain": 1, "tier": 2 if len(header) > 2 else None, "industry": None}  # no header row
+        else:
+            raise HTTPException(422, "add a header row with at least the columns name and domain")
+    else:
+        rows = rows[1:]
+    if len(rows) > MAX_IMPORT_ROWS:
+        raise HTTPException(422, f"import at most {MAX_IMPORT_ROWS} companies at a time")
+    mine = set(session.scalars(select(PortfolioItem.entity_id).where(PortfolioItem.org_id == user.org_id)))
+    added, skipped, to_scan = [], [], []
+
+    def cell(r, k):
+        i = col.get(k)
+        return r[i].strip() if i is not None and i < len(r) else ""
+
+    for n, r in enumerate(rows, start=1):
+        domain = cell(r, "domain")
+        tier_text = cell(r, "tier")
+        try:
+            data = EntityIn(name=cell(r, "name") or domain, primary_domain=domain,
+                            tier=int(tier_text) if tier_text else 3)
+        except (ValueError, TypeError) as exc:
+            skipped.append({"row": n, "value": domain or cell(r, "name"), "reason": "not a valid domain or tier"
+                            if "domain" in str(exc) or "tier" in str(exc) or "int" in str(exc) else str(exc)[:100]})
+            continue
+        industry = cell(r, "industry")
+        industry = next((i for i in INDUSTRIES if i.lower() == industry.lower()), None) if industry else None
+        entity = session.scalars(select(Entity).where(Entity.primary_domain == data.primary_domain)).first()
+        if entity is None:
+            entity = Entity(name=data.name[:255], primary_domain=data.primary_domain, industry=industry)
+            session.add(entity)
+            session.flush()
+        elif entity.id in mine:
+            skipped.append({"row": n, "value": data.primary_domain, "reason": "already in your portfolio"})
+            continue
+        session.add(PortfolioItem(org_id=user.org_id, entity_id=entity.id, tier=data.tier))
+        mine.add(entity.id)
+        added.append({"id": entity.id, "name": entity.name, "domain": entity.primary_domain})
+        if _latest(session, entity.id) is None and not is_opted_out(session, entity.primary_domain):
+            to_scan.append(entity.id)
+    session.commit()
+    if body.scan and to_scan:
+        tasks.add_task(_import_scans, to_scan)
+    return {"added": added, "skipped": skipped, "scans_queued": len(to_scan) if body.scan else 0}
+
+
 @api.get("/entities")
 def list_entities(user: User = Depends(auth.current_user),
                   session: Session = Depends(db.get_session)) -> list[dict]:
@@ -327,6 +411,8 @@ app.include_router(incidents_router)
 app.include_router(remediation_router)
 app.include_router(advisory_router)
 app.include_router(codereview.router)
+app.include_router(vendors.router)
+app.include_router(vendorshare.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
