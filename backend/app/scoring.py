@@ -35,8 +35,9 @@ DEFAULT_HALF_LIFE_DAYS = 30
 
 SIZE_ALPHA = 0.5
 # Calibration constant for the penalty-to-score curve: score = 100 * exp(-penalty / K).
-# A single high finding on one asset gives about 63; to be calibrated by back-testing.
-CURVE_K = 15.0
+# A single high finding on one asset gives about 42 (grade F for that factor); to be calibrated
+# by back-testing against incident outcomes (BRS 7.3).
+CURVE_K = 8.0
 
 # BRS 7.4 gates: severe issues cap the overall score.
 GATES = [

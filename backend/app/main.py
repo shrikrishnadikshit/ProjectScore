@@ -2,7 +2,11 @@ import logging
 import re
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from pathlib import Path
+
+from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,6 +27,7 @@ async def lifespan(_: FastAPI):
 
 logger = logging.getLogger("projectscore")
 app = FastAPI(title="ProjectScore API", version="0.1.0", lifespan=lifespan)
+api = APIRouter(prefix="/api")
 
 
 class EntityIn(BaseModel):
@@ -44,7 +49,8 @@ class EntityIn(BaseModel):
 def _entity_out(e: Entity, latest: Score | None) -> dict:
     return {"id": e.id, "name": e.name, "primary_domain": e.primary_domain, "industry": e.industry,
             "country": e.country, "tier": e.tier,
-            "score": latest.overall if latest else None, "grade": latest.grade if latest else None}
+            "score": latest.overall if latest else None, "grade": latest.grade if latest else None,
+            "scanned_at": latest.created_at.isoformat() if latest else None}
 
 
 def _latest(session: Session, entity_id: int) -> Score | None:
@@ -59,12 +65,12 @@ def _get(session: Session, entity_id: int) -> Entity:
     return entity
 
 
-@app.get("/health")
+@api.get("/health")
 def health() -> dict:
     return {"status": "ok"}
 
 
-@app.post("/entities", status_code=201)
+@api.post("/entities", status_code=201)
 def create_entity(body: EntityIn, session: Session = Depends(db.get_session)) -> dict:
     if session.scalars(select(Entity).where(Entity.primary_domain == body.primary_domain)).first():
         raise HTTPException(409, "an entity with this domain already exists")
@@ -74,12 +80,12 @@ def create_entity(body: EntityIn, session: Session = Depends(db.get_session)) ->
     return _entity_out(entity, None)
 
 
-@app.get("/entities")
+@api.get("/entities")
 def list_entities(session: Session = Depends(db.get_session)) -> list[dict]:
     return [_entity_out(e, _latest(session, e.id)) for e in session.scalars(select(Entity).order_by(Entity.name))]
 
 
-@app.get("/entities/{entity_id}")
+@api.get("/entities/{entity_id}")
 def get_entity(entity_id: int, session: Session = Depends(db.get_session)) -> dict:
     entity = _get(session, entity_id)
     latest = _latest(session, entity_id)
@@ -94,7 +100,7 @@ def get_entity(entity_id: int, session: Session = Depends(db.get_session)) -> di
     return out
 
 
-@app.get("/entities/{entity_id}/scores")
+@api.get("/entities/{entity_id}/scores")
 def score_history(entity_id: int, session: Session = Depends(db.get_session)) -> list[dict]:
     _get(session, entity_id)
     return [{"overall": s.overall, "grade": s.grade, "model_version": s.model_version,
@@ -112,8 +118,20 @@ def _scan_job(entity_id: int) -> None:
         session.close()
 
 
-@app.post("/entities/{entity_id}/scan", status_code=202)
+@api.post("/entities/{entity_id}/scan", status_code=202)
 def start_scan(entity_id: int, tasks: BackgroundTasks, session: Session = Depends(db.get_session)) -> dict:
     _get(session, entity_id)
     tasks.add_task(_scan_job, entity_id)
     return {"status": "scan started"}
+
+
+app.include_router(api)
+
+# Serve the built web app (frontend/dist) from the same server in production.
+DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if DIST.is_dir():
+    app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str) -> FileResponse:
+        return FileResponse(DIST / "index.html")

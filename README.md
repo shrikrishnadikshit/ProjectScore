@@ -14,14 +14,26 @@ Security ratings and cyber risk intelligence platform. The requirements live in 
 - If DNS cannot be queried reliably, the affected factors are marked as not assessed rather than
   reported as missing records.
 
+- Web app (React): vendor portfolio with search, sorting and summary tiles; company page with score
+  gauge, grade, trend, factor grades, open findings and the full calculation trace; add a company and
+  scan it.
+
 ## Run it locally
 
 ```bash
+# 1. Build the web app
+cd frontend && npm install && npm run build && cd ..
+
+# 2. Start the server (serves the API at /api and the web app at /)
 cd backend
 pip install -r requirements.txt
+python -m app.seed          # optional: fictional demo companies
 uvicorn app.main:app --reload
-# open http://127.0.0.1:8000/docs
+# open http://127.0.0.1:8000  (API docs at /docs)
 ```
+
+For frontend development with live reload, run `npm run dev` in `frontend` alongside uvicorn and open
+http://localhost:5173.
 
 Uses SQLite by default; set `DATABASE_URL` (for example `postgresql+psycopg://...`) for PostgreSQL.
 

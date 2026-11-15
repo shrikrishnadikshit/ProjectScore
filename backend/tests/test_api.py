@@ -24,23 +24,23 @@ def fake_collector(findings):
 
 def test_create_scan_and_read_score():
     client = TestClient(main.app)
-    r = client.post("/entities", json={"name": "Example", "primary_domain": "https://Example.com/"})
+    r = client.post("/api/entities", json={"name": "Example", "primary_domain": "https://Example.com/"})
     assert r.status_code == 201
     entity_id = r.json()["id"]
-    assert client.post("/entities", json={"name": "Dup", "primary_domain": "example.com"}).status_code == 409
-    assert client.post("/entities", json={"name": "Bad", "primary_domain": "not a domain"}).status_code == 422
+    assert client.post("/api/entities", json={"name": "Dup", "primary_domain": "example.com"}).status_code == 409
+    assert client.post("/api/entities", json={"name": "Bad", "primary_domain": "not a domain"}).status_code == 422
 
     session = db.SessionLocal()
     entity = session.get(Entity, entity_id)
     scan_entity(session, entity, fake_collector([
         RawFinding("email_security", "dmarc_missing", "No DMARC record", "high", "example.com")]))
-    first = client.get(f"/entities/{entity_id}").json()
+    first = client.get(f"/api/entities/{entity_id}").json()
     assert first["grade"] is not None and first["score"] < 900
     assert [x["code"] for x in first["findings"]] == ["dmarc_missing"]
 
     # Fixed on the next scan: the finding is remediated, then decays out of the score (BRS 7.4).
     scan_entity(session, entity, fake_collector([]))
-    second = client.get(f"/entities/{entity_id}").json()
+    second = client.get(f"/api/entities/{entity_id}").json()
     assert second["findings"] == []
     finding = session.scalars(select(Finding)).one()
     assert finding.status == "remediated"
@@ -48,10 +48,10 @@ def test_create_scan_and_read_score():
     session.commit()
     scan_entity(session, entity, fake_collector([]))
     session.close()
-    third = client.get(f"/entities/{entity_id}").json()
+    third = client.get(f"/api/entities/{entity_id}").json()
     assert third["score"] > first["score"]
-    assert len(client.get(f"/entities/{entity_id}/scores").json()) == 3
-    assert client.get("/entities/999").status_code == 404
+    assert len(client.get(f"/api/entities/{entity_id}/scores").json()) == 3
+    assert client.get("/api/entities/999").status_code == 404
 
 
 def test_scan_with_no_coverage_is_rejected():
