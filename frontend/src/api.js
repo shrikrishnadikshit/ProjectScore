@@ -50,6 +50,11 @@ export const api = {
   getScores: (id) => request(`/entities/${id}/scores`),
   createEntity: (data) => request('/entities', { method: 'POST', body: JSON.stringify(data) }),
   startScan: (id) => request(`/entities/${id}/scan`, { method: 'POST' }),
+  disputeFinding: (id, reason) => request(`/findings/${id}/disputes`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  entityDisputes: (id) => request(`/entities/${id}/disputes`),
+  listDisputes: () => request('/disputes'),
+  decideDispute: (id, status, note) => request(`/disputes/${id}`, { method: 'POST', body: JSON.stringify({ status, note }) }),
+  publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }
 
 export const FACTOR_LABELS = {

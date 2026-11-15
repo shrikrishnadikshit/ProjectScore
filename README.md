@@ -79,6 +79,9 @@ administrator's login. That account is created on first start.
 - Public scanner page at `/scanner` explains the scanner and takes opt-out requests; the owner reviews
   them on the Opt-outs page, and approved domains (and their subdomains) are never scanned. The scanner's
   user agent links to this page; set `SCANNER_INFO_URL` if the site moves to its own domain.
+- Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
+  public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
+  positive, keeps it from returning on later scans and recalculates the score at once.
 - Users can also be added from a shell on the server:
   `python -m app.admin create-user --org "Client Ltd" --email person@client.com [--admin]`
 - Admins can also add users to their own organisation with `POST /api/users`.

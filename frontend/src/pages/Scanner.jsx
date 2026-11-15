@@ -72,6 +72,52 @@ export default function Scanner() {
           </form>
         )}
       </section>
+
+      <PublicDispute />
     </div>
+  )
+}
+
+function PublicDispute() {
+  const [form, setForm] = useState({ domain: '', contact_email: '', organisation: '', reason: '', website: '' })
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+
+  async function submit(e) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await api.publicDispute(form)
+      setSent(true)
+    } catch (err) {
+      setError(err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card">
+      <h2>Dispute a finding about your organisation</h2>
+      {sent ? (
+        <p className="strong">Thank you. We will review your dispute, normally within five working days, and may contact you for evidence. If we agree, the finding is removed and the rating is recalculated.</p>
+      ) : (
+        <form className="form" onSubmit={submit} style={{ maxWidth: 'none' }}>
+          <p className="muted small">If a finding is wrong, for example a host is not yours or an issue has been fixed, tell us and we will check it.</p>
+          <div className="form-row">
+            <label>Your domain<input required value={form.domain} onChange={set('domain')} placeholder="example.com" /></label>
+            <label>Your work email<input type="email" required value={form.contact_email} onChange={set('contact_email')} placeholder="security@example.com" /></label>
+          </div>
+          <label>Organisation<input value={form.organisation} onChange={set('organisation')} placeholder="Optional" /></label>
+          <label>What is wrong, and why<textarea rows={4} required minLength={10} value={form.reason} onChange={set('reason')} placeholder="Which finding or host, and what the correct position is." /></label>
+          <label className="hp" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={form.website} onChange={set('website')} /></label>
+          {error && <p className="error">{error}</p>}
+          <div className="actions"><button className="btn primary" disabled={busy}>{busy ? 'Sending…' : 'Send dispute'}</button></div>
+        </form>
+      )}
+    </section>
   )
 }

@@ -9,6 +9,7 @@ import Account from './pages/Account.jsx'
 import Scanner from './pages/Scanner.jsx'
 import OptOuts from './pages/OptOuts.jsx'
 import DeepScans from './pages/DeepScans.jsx'
+import Disputes from './pages/Disputes.jsx'
 import './styles.css'
 
 createRoot(document.getElementById('root')).render(
@@ -22,6 +23,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/team" element={<Team />} />
           <Route path="/account" element={<Account />} />
           <Route path="/opt-outs" element={<OptOuts />} />
+          <Route path="/disputes" element={<Disputes />} />
           <Route path="/in-depth" element={<DeepScans />} />
           <Route path="/in-depth/:scanId" element={<DeepScans />} />
         </Route>

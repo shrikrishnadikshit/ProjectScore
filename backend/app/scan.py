@@ -76,6 +76,11 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
     assessed = {f for f, n in coverage.items() if n > 0}
     now = datetime.now(timezone.utc)
 
+    from .disputes import suppressed_keys
+
+    suppressed = suppressed_keys(session, entity.id)
+    raw = [r for r in raw if (r.code, r.asset_value) not in suppressed]
+
     # v1: replace open findings with the latest observation; previous ones become remediated.
     previous = {(f.code, f.asset_value): f for f in session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open"))}

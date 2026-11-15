@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api, FACTOR_LABELS, SEVERITY_ORDER } from '../api.js'
 import { GradeBadge, ScoreGauge, gradeClass } from '../components/Grade.jsx'
@@ -16,12 +16,18 @@ export default function EntityDetail() {
   const [scanning, setScanning] = useState(params.get('scanning') === '1')
   const [showTrace, setShowTrace] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [disputes, setDisputes] = useState({})
+  const [disputing, setDisputing] = useState(null)
   const polls = useRef(0)
 
   const load = useCallback(async () => {
-    const [e, s] = await Promise.all([api.getEntity(id), api.getScores(id)])
+    const [e, s, d] = await Promise.all([api.getEntity(id), api.getScores(id), api.entityDisputes(id).catch(() => [])])
     setEntity(e)
     setScores(s)
+    // Latest dispute per finding (the API returns newest first).
+    const byFinding = {}
+    for (const row of d) if (!byFinding[row.finding_id]) byFinding[row.finding_id] = row
+    setDisputes(byFinding)
     return s.length
   }, [id])
 
@@ -139,16 +145,33 @@ export default function EntityDetail() {
         {findings.length === 0 ? <p className="muted pad">No open findings.</p> : (
           <div className="table-scroll">
             <table>
-              <thead><tr><th>Severity</th><th>Finding</th><th>Factor</th><th>Asset</th><th>First seen</th></tr></thead>
+              <thead><tr><th>Severity</th><th>Finding</th><th>Factor</th><th>Asset</th><th>First seen</th><th></th></tr></thead>
               <tbody>
                 {findings.map((f) => (
-                  <tr key={f.id} className="static">
-                    <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
-                    <td>{f.title}</td>
-                    <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
-                    <td className="mono small">{f.asset}</td>
-                    <td className="muted small">{new Date(f.first_seen).toLocaleDateString()}</td>
-                  </tr>
+                  <Fragment key={f.id}>
+                    <tr className="static">
+                      <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
+                      <td>{f.title}</td>
+                      <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
+                      <td className="mono small">{f.asset}</td>
+                      <td className="muted small">{new Date(f.first_seen).toLocaleDateString()}</td>
+                      <td>
+                        {disputes[f.id]?.status === 'pending' ? <span className="role">Dispute under review</span>
+                          : disputes[f.id]?.status === 'rejected' ? <span className="role" title={disputes[f.id].reviewer_note || ''}>Dispute rejected</span>
+                          : <button className="btn ghost tiny" onClick={() => setDisputing(disputing === f.id ? null : f.id)}>Dispute</button>}
+                      </td>
+                    </tr>
+                    {disputing === f.id && (
+                      <tr className="static"><td colSpan={6}>
+                        <DisputeForm onCancel={() => setDisputing(null)} onSubmit={async (reason) => {
+                          await api.disputeFinding(f.id, reason)
+                          setDisputing(null)
+                          setNotice('Thank you. Your dispute has been sent for review. If it is accepted, the finding is removed and the score is recalculated.')
+                          await load()
+                        }} />
+                      </td></tr>
+                    )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -211,4 +234,32 @@ function gradeText(grade) {
     D: 'Basic: significant weaknesses',
     F: 'Critical: severe exposures',
   }[grade] ?? 'Awaiting first scan'
+}
+
+function DisputeForm({ onSubmit, onCancel }) {
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  async function submit(e) {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try { await onSubmit(reason) } catch (err) {
+      setError(err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.')
+      setBusy(false)
+    }
+  }
+  return (
+    <form className="form" onSubmit={submit} style={{ maxWidth: 'none' }}>
+      <label>Why is this finding wrong?
+        <textarea rows={3} required minLength={10} value={reason} onChange={(e) => setReason(e.target.value)}
+          placeholder="For example: this host belongs to our CDN provider, not to us; or the record was fixed on 10 November." />
+      </label>
+      {error && <p className="error">{error}</p>}
+      <div className="actions">
+        <button type="button" className="btn ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn primary" disabled={busy}>{busy ? 'Sending…' : 'Send dispute'}</button>
+      </div>
+    </form>
+  )
 }

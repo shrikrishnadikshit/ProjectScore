@@ -183,3 +183,24 @@ class ActiveScan(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     results: Mapped[list] = mapped_column(JSON, default=list)
     error: Mapped[str | None] = mapped_column(String(2000))
+
+
+class Dispute(Base):
+    """A challenge to a finding (BRS 7.5). Accepted disputes mark the finding as a false positive and
+    keep the same finding from reappearing on later scans."""
+
+    __tablename__ = "disputes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_id: Mapped[int | None] = mapped_column(ForeignKey("entities.id"), index=True)
+    finding_id: Mapped[int | None] = mapped_column(ForeignKey("findings.id"), index=True)
+    code: Mapped[str | None] = mapped_column(String(80))
+    asset_value: Mapped[str | None] = mapped_column(String(255))
+    domain: Mapped[str | None] = mapped_column(String(255))  # for public disputes without a finding
+    submitted_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    contact_email: Mapped[str | None] = mapped_column(String(255))
+    reason: Mapped[str] = mapped_column(String(4000))
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, accepted, rejected
+    reviewer_note: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
