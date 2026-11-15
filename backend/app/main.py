@@ -178,7 +178,9 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
     latest = _latest(session, entity_id)
     out = _entity_out(item.entity, item, latest)
     out["factors"] = latest.factors if latest else {}
-    out["assets"] = sorted(a.value for a in item.entity.assets)
+    order = {"domain": 0, "subdomain": 1, "netblock": 2, "ip": 3}
+    out["assets"] = [{"type": a.type, "value": a.value}
+                     for a in sorted(item.entity.assets, key=lambda a: (order.get(a.type, 9), a.value))]
     out["opted_out"] = is_opted_out(session, item.entity.primary_domain)
     out["findings"] = [
         {"id": f.id, "risk_factor": f.risk_factor, "code": f.code, "title": f.title, "severity": f.severity,

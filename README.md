@@ -64,6 +64,12 @@ administrator's login. That account is created on first start.
 - Every monitored company is rescanned automatically every 7 days (`RESCAN_DAYS`). The scheduler runs
   inside the web server, so keep a single instance or move it to a worker before scaling out.
 - Each company page has a PDF report download.
+- IP addresses and registered IP ranges are found passively (DNS plus RDAP registry records; only blocks
+  registered to the company itself count, not cloud or hosting ranges). Open services and vulnerable
+  software come from existing internet-wide scan data, never from scanning the IPs directly:
+  `EXPOSURE_SOURCE=internetdb` (default, free; its terms are non-commercial, so confirm licensing before
+  commercial launch), `SHODAN_API_KEY=...` to use the paid Shodan API instead, or `EXPOSURE_SOURCE=off`.
+  Exposed CVEs are matched against the CISA KEV catalogue; KEV matches cap the score at 700.
 - Public scanner page at `/scanner` explains the scanner and takes opt-out requests; the owner reviews
   them on the Opt-outs page, and approved domains (and their subdomains) are never scanned. The scanner's
   user agent links to this page; set `SCANNER_INFO_URL` if the site moves to its own domain.

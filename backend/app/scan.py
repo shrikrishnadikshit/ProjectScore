@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .collectors import RawFinding, discovery, dns_health, email, tls, web
+from .collectors import RawFinding, discovery, dns_health, email, network, tls, web
 from .models import Asset, Entity, Finding, Score
 from .scoring import ScoringFinding, compute_score
 
@@ -39,11 +39,15 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     web_findings, web_hosts, versioned_hosts = web.collect(hosts, domain=entity.primary_domain)
     # The vulnerability factor counts only hosts whose software version was visible: a hidden
     # version is not evidence of being patched, so it must not raise the score.
+    net_findings, net_coverage, net_assets = network.collect(hosts, entity.name, entity.primary_domain)
+    entity._extra_assets = net_assets
     coverage = {"email_security": email_assessed, "dns_health": dns_hosts, "tls": tls_hosts,
-                "web_security": web_hosts, "vulnerability": versioned_hosts}
+                "web_security": web_hosts,
+                "vulnerability": versioned_hosts + net_coverage.get("vulnerability", 0),
+                "network_exposure": net_coverage.get("network_exposure", 0)}
     # HSTS is a TLS-factor finding observed over HTTPS, so HTTPS hosts count toward TLS coverage.
     coverage["tls"] = max(tls_hosts, web_hosts)
-    return email_findings + dns_findings + tls_findings + web_findings, coverage
+    return email_findings + dns_findings + tls_findings + web_findings + net_findings, coverage
 
 
 # Finding codes produced by rules that were later found to be wrong. Existing findings with these
@@ -96,10 +100,18 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
                                                    Finding.status == "remediated",
                                                    Finding.code.in_(RETIRED_CODES))):
         f.status = "false_positive"
+    known = {a.value: a for a in entity.assets}
     for host in hosts_for(entity):
-        if not any(a.value == host for a in entity.assets):
+        if host not in known:
             session.add(Asset(entity_id=entity.id, type="domain" if host == entity.primary_domain else "subdomain",
                               value=host))
+    for asset_type, value in getattr(entity, "_extra_assets", []):
+        if value in known:
+            known[value].last_seen = now
+        else:
+            asset = Asset(entity_id=entity.id, type=asset_type, value=value, first_seen=now, last_seen=now)
+            session.add(asset)
+            known[value] = asset
     session.flush()
 
     all_findings = session.scalars(select(Finding).where(Finding.entity_id == entity.id)).all()

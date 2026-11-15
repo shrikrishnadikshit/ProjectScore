@@ -3,6 +3,7 @@ import os
 os.environ["DATABASE_URL"] = "sqlite:///./test_projectscore.db"
 os.environ["COOKIE_SECURE"] = "false"
 os.environ["SCHEDULER_ENABLED"] = "false"
+os.environ["EXPOSURE_SOURCE"] = "off"
 
 import pytest  # noqa: E402
 

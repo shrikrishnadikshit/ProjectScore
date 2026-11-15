@@ -159,10 +159,16 @@ export default function EntityDetail() {
       {entity.assets?.length > 0 && (
         <section className="card">
           <h2>Discovered assets</h2>
-          <p className="muted small">Found passively in public certificate logs. Up to 25 are scanned per company.</p>
-          <div className="asset-list">
-            {entity.assets.map((a) => <span key={a} className="mono small asset">{a}</span>)}
-          </div>
+          <p className="muted small">Found passively from certificate logs, DNS and internet registry records. Up to 25 hostnames and 64 IP addresses are checked per company.</p>
+          {[['domain', 'Domains'], ['subdomain', 'Subdomains'], ['netblock', 'Registered IP ranges'], ['ip', 'IP addresses']].map(([type, label]) => {
+            const items = entity.assets.filter((a) => a.type === type)
+            return items.length ? (
+              <div key={type} className="asset-group">
+                <div className="small strong">{label} ({items.length})</div>
+                <div className="asset-list">{items.map((a) => <span key={a.value} className="mono small asset">{a.value}</span>)}</div>
+              </div>
+            ) : null
+          })}
         </section>
       )}
 
