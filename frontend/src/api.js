@@ -88,6 +88,7 @@ export const api = {
   getOrgSettings: () => request('/org-settings'),
   setOrgSettings: (data) => request('/org-settings', { method: 'PUT', body: JSON.stringify(data) }),
   deleteAccount: (password) => request('/account/delete', { method: 'POST', body: JSON.stringify({ password }) }),
+  attackPaths: (id) => request(`/entities/${id}/attack-paths`),
   listQuestionnaires: (id) => request(`/entities/${id}/questionnaires`),
   sendQuestionnaire: (id, data) => request(`/entities/${id}/questionnaires`, { method: 'POST', body: JSON.stringify(data) }),
   getQuestionnaire: (id) => request(`/questionnaires/${id}`),
