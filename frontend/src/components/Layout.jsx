@@ -7,11 +7,13 @@ import Login from '../pages/Login.jsx'
 export default function Layout() {
   const [user, setUser] = useState(undefined) // undefined = checking, null = signed out
   const [unread, setUnread] = useState(0)
+  const [reputation, setReputation] = useState(false)
   const refreshAlerts = useCallback(() => { api.alertCount().then((r) => setUnread(r.count)).catch(() => {}) }, [])
 
   useEffect(() => {
     if (!user) return
     refreshAlerts()
+    api.reputationConfig().then((c) => setReputation(!!c.enabled)).catch(() => {})
     const t = setInterval(refreshAlerts, 60000)
     return () => clearInterval(t)
   }, [user, refreshAlerts])
@@ -41,6 +43,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
           <NavLink to="/threats">Threats</NavLink>
+          {reputation && <NavLink to="/reputation">Reputation</NavLink>}
           <NavLink to="/policy">Policy</NavLink>
           <NavLink to="/advisory">Advisory</NavLink>
           <NavLink to="/alerts">Alerts{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>

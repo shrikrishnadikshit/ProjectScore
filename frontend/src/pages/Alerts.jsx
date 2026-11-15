@@ -35,7 +35,7 @@ export default function Alerts() {
           <div key={a.id} className={`card alert-item ${a.read ? 'read' : ''} alert-${a.severity}`}>
             <div className="alert-head">
               {!a.read && <span className="dot" aria-label="Unread" />}
-              <Link to={`/entities/${a.entity_id}`} onClick={() => open(a)} className="strong">{a.title}</Link>
+              <Link to={a.entity_id ? `/entities/${a.entity_id}` : a.kind?.startsWith('reputation') ? '/reputation' : '/alerts'} onClick={() => open(a)} className="strong">{a.title}</Link>
               <span className="muted small alert-time">{new Date(a.created_at).toLocaleString()}</span>
             </div>
             {a.detail && <pre className="alert-detail small">{a.detail}</pre>}
