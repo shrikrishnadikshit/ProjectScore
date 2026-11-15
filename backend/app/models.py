@@ -237,3 +237,22 @@ class Alert(Base):
     detail: Mapped[str | None] = mapped_column(String(4000))
     read: Mapped[bool] = mapped_column(default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class Questionnaire(Base):
+    """A security questionnaire sent by an organisation to a vendor, answered through a private link."""
+
+    __tablename__ = "questionnaires"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    recipient_email: Mapped[str] = mapped_column(String(320))
+    recipient_name: Mapped[str | None] = mapped_column(String(255))
+    status: Mapped[str] = mapped_column(String(20), default="sent")  # sent, in_progress, submitted, reviewed
+    answers: Mapped[dict] = mapped_column(JSON, default=dict)
+    reviewer_note: Mapped[str | None] = mapped_column(String(2000))
+    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

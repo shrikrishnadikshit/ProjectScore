@@ -5,6 +5,7 @@ import { GradeBadge, ScoreGauge, gradeClass } from '../components/Grade.jsx'
 import History from '../components/History.jsx'
 import Frameworks from '../components/Frameworks.jsx'
 import Insights from '../components/Insights.jsx'
+import Questionnaires from '../components/Questionnaires.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -183,6 +184,8 @@ export default function EntityDetail() {
           </div>
         )}
       </section>
+
+      <Questionnaires entityId={id} user={user} />
 
       {latest && <Frameworks entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 

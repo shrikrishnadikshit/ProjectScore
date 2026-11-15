@@ -64,6 +64,12 @@ export const api = {
   industries: () => request('/industries'),
   benchmark: (id) => request(`/entities/${id}/benchmark`),
   setIndustry: (id, industry) => request(`/entities/${id}/industry`, { method: 'PATCH', body: JSON.stringify({ industry }) }),
+  listQuestionnaires: (id) => request(`/entities/${id}/questionnaires`),
+  sendQuestionnaire: (id, data) => request(`/entities/${id}/questionnaires`, { method: 'POST', body: JSON.stringify(data) }),
+  getQuestionnaire: (id) => request(`/questionnaires/${id}`),
+  reviewQuestionnaire: (id, note) => request(`/questionnaires/${id}/review`, { method: 'POST', body: JSON.stringify({ note }) }),
+  publicQuestionnaire: (token) => request(`/public/questionnaire/${encodeURIComponent(token)}`),
+  savePublicQuestionnaire: (token, answers, submit) => request(`/public/questionnaire/${encodeURIComponent(token)}`, { method: 'PUT', body: JSON.stringify({ answers, submit }) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }

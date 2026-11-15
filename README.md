@@ -98,6 +98,9 @@ administrator's login. That account is created on first start.
 - Patching speed: median days to fix vulnerabilities from scan history; serious ones open over 60 days add
   a finding. Benchmarking against industry and all rated companies (groups of 5 or more only).
 - Up to 100 hostnames (`MAX_HOSTS_PER_ENTITY`) and 256 IPs (`MAX_IPS_PER_ENTITY`) per company.
+- Vendor questionnaires: admins send a 24-question security questionnaire from a company page; the vendor
+  answers via a private link (no account, 60-day expiry). Answers are scored, and "Yes" answers that open
+  scan findings contradict are flagged.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

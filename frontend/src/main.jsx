@@ -13,6 +13,8 @@ import Disputes from './pages/Disputes.jsx'
 import FreeReport from './pages/FreeReport.jsx'
 import Leads from './pages/Leads.jsx'
 import Alerts from './pages/Alerts.jsx'
+import QuestionnaireView from './pages/QuestionnaireView.jsx'
+import VendorQuestionnaire from './pages/VendorQuestionnaire.jsx'
 import './styles.css'
 
 createRoot(document.getElementById('root')).render(
@@ -21,6 +23,7 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/scanner" element={<Scanner />} />
         <Route path="/free-report" element={<FreeReport />} />
+        <Route path="/q/:token" element={<VendorQuestionnaire />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Portfolio />} />
           <Route path="/entities/:id" element={<EntityDetail />} />
@@ -30,6 +33,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/disputes" element={<Disputes />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/alerts" element={<Alerts />} />
+          <Route path="/questionnaires/:id" element={<QuestionnaireView />} />
           <Route path="/in-depth" element={<DeepScans />} />
           <Route path="/in-depth/:scanId" element={<DeepScans />} />
         </Route>
