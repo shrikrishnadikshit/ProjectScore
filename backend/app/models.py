@@ -145,3 +145,41 @@ class OptOutRequest(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, approved, rejected
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DomainVerification(Base):
+    """Proof that an organisation controls a domain (DNS TXT record). Required before in-depth scans."""
+
+    __tablename__ = "domain_verifications"
+    __table_args__ = (UniqueConstraint("org_id", "domain"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    domain: Mapped[str] = mapped_column(String(255))
+    token: Mapped[str] = mapped_column(String(64))
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ActiveScan(Base):
+    """A consent-based in-depth scan (BRS 4.1: active testing only for proven, authorised assets).
+    The authorisation statement and who gave it are stored with the scan as the audit record."""
+
+    __tablename__ = "active_scans"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"), index=True)
+    domain: Mapped[str] = mapped_column(String(255))
+    targets: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="queued")  # queued, running, done, failed
+    requested_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    authoriser_name: Mapped[str] = mapped_column(String(255))
+    authoriser_title: Mapped[str] = mapped_column(String(255))
+    authorisation_text: Mapped[str] = mapped_column(String(4000))
+    authorised_from_ip: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    results: Mapped[list] = mapped_column(JSON, default=list)
+    error: Mapped[str | None] = mapped_column(String(2000))

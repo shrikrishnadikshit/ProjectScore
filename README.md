@@ -70,6 +70,12 @@ administrator's login. That account is created on first start.
   `EXPOSURE_SOURCE=internetdb` (default, free; its terms are non-commercial, so confirm licensing before
   commercial launch), `SHODAN_API_KEY=...` to use the paid Shodan API instead, or `EXPOSURE_SOURCE=off`.
   Exposed CVEs are matched against the CISA KEV catalogue; KEV matches cap the score at 700.
+- **In-depth scans** (admins, opt-in): active testing of the organisation's own websites with Nuclei
+  (free, MIT licence; installed in the Docker image with a pinned, checksum-verified release and the free
+  community templates). Requires DNS TXT proof of control (valid 90 days) and a named, written
+  authorisation stored with each scan; scope is limited to the verified domain and its subdomains; DoS,
+  brute-force and fuzzing templates are excluded; rate-limited; one scan per domain per 24 hours. Results
+  are private to the organisation and never change ratings. Needs the 2 GB Render plan.
 - Public scanner page at `/scanner` explains the scanner and takes opt-out requests; the owner reviews
   them on the Opt-outs page, and approved domains (and their subdomains) are never scanned. The scanner's
   user agent links to this page; set `SCANNER_INFO_URL` if the site moves to its own domain.

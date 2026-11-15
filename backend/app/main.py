@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from . import auth, db, scheduler
 from .models import Entity, Finding, PortfolioItem, Score, User
 from .scan import NothingAssessed, scan_entity
+from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
 
@@ -30,9 +31,11 @@ async def lifespan(_: FastAPI):
     session = db.SessionLocal()
     try:
         auth.bootstrap_admin(session)
+        fail_interrupted_scans(session)
     finally:
         session.close()
     scheduler.start()
+    update_templates_async()
     yield
     scheduler.stop()
 
@@ -253,6 +256,7 @@ def start_scan(entity_id: int, tasks: BackgroundTasks, user: User = Depends(auth
 app.include_router(api)
 app.include_router(users_router)
 app.include_router(optout_router)
+app.include_router(active_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

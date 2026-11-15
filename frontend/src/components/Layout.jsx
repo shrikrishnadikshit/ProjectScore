@@ -30,6 +30,7 @@ export default function Layout() {
         </NavLink>
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
+          {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/in-depth">In-depth scans</NavLink>}
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
           {user.role === 'owner' && <NavLink to="/opt-outs">Opt-outs</NavLink>}
         </nav>
