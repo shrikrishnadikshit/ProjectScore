@@ -451,3 +451,62 @@ class OrgSettings(Base):
     currency: Mapped[str] = mapped_column(String(3), default="INR")
     breach_cost_usd_m: Mapped[float | None] = mapped_column(Float)  # override, in millions of US dollars
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RedTeamEngagement(Base):
+    """A managed, authorised red team assessment of an organisation's own systems."""
+
+    __tablename__ = "red_team_engagements"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    status: Mapped[str] = mapped_column(String(20), default="requested")
+    objectives: Mapped[str] = mapped_column(String(4000))
+    scope: Mapped[dict] = mapped_column(JSON, default=dict)          # domains, ip_ranges, exclusions
+    techniques: Mapped[list] = mapped_column(JSON, default=list)     # allowed test types
+    window_start: Mapped[date | None] = mapped_column(Date)
+    window_end: Mapped[date | None] = mapped_column(Date)
+    testing_hours: Mapped[str | None] = mapped_column(String(200))
+    emergency_contact: Mapped[dict] = mapped_column(JSON, default=dict)  # name, phone, email
+    authoriser_name: Mapped[str] = mapped_column(String(255))
+    authoriser_title: Mapped[str] = mapped_column(String(255))
+    authorisation_text: Mapped[str] = mapped_column(String(6000))
+    authorised_from_ip: Mapped[str | None] = mapped_column(String(64))
+    paused: Mapped[bool] = mapped_column(default=False)
+    summary: Mapped[str | None] = mapped_column(String(8000))
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RedTeamFinding(Base):
+    __tablename__ = "red_team_findings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    engagement_id: Mapped[int] = mapped_column(ForeignKey("red_team_engagements.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str] = mapped_column(String(300))
+    severity: Mapped[str] = mapped_column(String(10))
+    stage: Mapped[str | None] = mapped_column(String(50))
+    techniques: Mapped[list] = mapped_column(JSON, default=list)
+    asset: Mapped[str | None] = mapped_column(String(300))
+    description: Mapped[str] = mapped_column(String(8000))
+    evidence: Mapped[str | None] = mapped_column(String(8000))
+    recommendation: Mapped[str] = mapped_column(String(4000))
+    status: Mapped[str] = mapped_column(String(20), default="open")  # open, fix_claimed, retest_passed, retest_failed, risk_accepted
+    customer_note: Mapped[str | None] = mapped_column(String(2000))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RedTeamLog(Base):
+    """Engagement timeline, also used for deconfliction ("was that alert you?")."""
+
+    __tablename__ = "red_team_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    engagement_id: Mapped[int] = mapped_column(ForeignKey("red_team_engagements.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))   # status, activity, pause, resume, note, finding
+    text: Mapped[str] = mapped_column(String(4000))
+    actor: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
