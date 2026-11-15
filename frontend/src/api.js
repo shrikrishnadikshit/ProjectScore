@@ -28,6 +28,13 @@ export const api = {
   me: () => request('/auth/me'),
   login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  changePassword: (current_password, new_password) =>
+    request('/auth/password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
+  listUsers: () => request('/users'),
+  listOrganizations: () => request('/organizations'),
+  addUser: (data) => request('/users', { method: 'POST', body: JSON.stringify(data) }),
+  updateUser: (id, data) => request(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  resetPassword: (id) => request(`/users/${id}/reset-password`, { method: 'POST' }),
   listEntities: () => request('/entities'),
   getEntity: (id) => request(`/entities/${id}`),
   getScores: (id) => request(`/entities/${id}/scores`),

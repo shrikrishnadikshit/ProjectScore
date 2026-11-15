@@ -30,14 +30,15 @@ export default function Layout() {
         </NavLink>
         <nav>
           <NavLink to="/" end>Portfolio</NavLink>
+          {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
         </nav>
         <div className="account">
-          <span className="muted small account-org">{user.organization}</span>
+          <NavLink to="/account" className="muted small account-org" title={user.email}>{user.organization}</NavLink>
           <button className="btn ghost small-btn" onClick={signOut} title={user.email}>Sign out</button>
         </div>
       </header>
       <main className="content">
-        <Outlet />
+        <Outlet context={{ user }} />
       </main>
     </div>
   )

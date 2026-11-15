@@ -55,7 +55,7 @@ def main() -> None:
     session = db.SessionLocal()
     user = session.scalars(select(User).where(User.email == DEMO_EMAIL)).first()
     if user is None:
-        user = create_user(session, "Demo Organisation", DEMO_EMAIL, DEMO_PASSWORD, role="admin")
+        user = create_user(session, "Demo Organisation", DEMO_EMAIL, DEMO_PASSWORD, role="owner")
     for name, domain, industry, tier, findings in DEMO:
         if session.scalars(select(Entity).where(Entity.primary_domain == domain)).first():
             continue

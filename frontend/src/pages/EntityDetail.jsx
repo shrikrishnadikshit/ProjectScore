@@ -78,7 +78,10 @@ export default function EntityDetail() {
           <p className="muted">{entity.primary_domain}{entity.industry ? ` · ${entity.industry}` : ''} · Tier {entity.tier}
             {entity.assets?.length ? ` · ${entity.assets.length} internet-facing asset${entity.assets.length === 1 ? '' : 's'}` : ''}</p>
         </div>
-        <button className="btn primary" onClick={rescan} disabled={scanning}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
+        <div className="row-actions">
+          {entity.score != null && <a className="btn ghost" href={`/api/entities/${id}/report.pdf`}>Download PDF report</a>}
+          <button className="btn primary" onClick={rescan} disabled={scanning}>{scanning ? 'Scanning…' : 'Run new scan'}</button>
+        </div>
       </div>
 
       {notice && <div className="banner">{notice}</div>}

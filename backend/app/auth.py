@@ -114,10 +114,37 @@ def current_user(request: Request, session: Session = Depends(db.get_session)) -
     return row.user
 
 
+# Roles: "member" sees its organisation's portfolio; "admin" also manages its organisation's users;
+# "owner" runs the platform and manages users and organisations for every client.
+ROLES = ("member", "admin", "owner")
+
+
 def require_admin(user: User = Depends(current_user)) -> User:
-    if user.role != "admin":
+    if user.role not in ("admin", "owner"):
         raise HTTPException(403, "admin only")
     return user
+
+
+def user_out(user: User) -> dict:
+    return {"id": user.id, "email": user.email, "name": user.name, "role": user.role,
+            "organization": user.org.name, "active": user.active}
+
+
+def temporary_password() -> str:
+    return secrets.token_urlsafe(12)
+
+
+def set_password(session: Session, user: User, password: str) -> None:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"password must be at least {MIN_PASSWORD_LENGTH} characters")
+    user.password_hash = hash_password(password)
+    session.commit()
+
+
+def end_all_sessions(session: Session, user: User) -> None:
+    for row in session.scalars(select(SessionToken).where(SessionToken.user_id == user.id)):
+        session.delete(row)
+    session.commit()
 
 
 def create_user(session: Session, org_name: str, email: str, password: str, role: str = "member",
@@ -141,8 +168,16 @@ def create_user(session: Session, org_name: str, email: str, password: str, role
 
 
 def bootstrap_admin(session: Session) -> None:
-    """Create the first admin from ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_ORG if no users exist yet."""
+    """Create the platform owner from ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_ORG if no users exist yet."""
     email, password = os.getenv("ADMIN_EMAIL"), os.getenv("ADMIN_PASSWORD")
-    if not email or not password or session.scalars(select(User)).first():
+    if not email:
         return
-    create_user(session, os.getenv("ADMIN_ORG", "ProjectScore"), email, password, role="admin")
+    existing = session.scalars(select(User).where(User.email == email.strip().lower())).first()
+    if existing is not None:
+        # The bootstrap account is the platform owner (older deployments created it as "admin").
+        if existing.role != "owner":
+            existing.role = "owner"
+            session.commit()
+        return
+    if password and not session.scalars(select(User)).first():
+        create_user(session, os.getenv("ADMIN_ORG", "ProjectScore"), email, password, role="owner")

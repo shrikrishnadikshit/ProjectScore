@@ -5,15 +5,16 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from . import auth, db
+from . import auth, db, scheduler
 from .models import Entity, Finding, PortfolioItem, Score, User
 from .scan import NothingAssessed, scan_entity
+from .users_api import router as users_router
 
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Minimum time between scans of the same entity, to keep scanning polite (BRS 4.4).
@@ -30,7 +31,9 @@ async def lifespan(_: FastAPI):
         auth.bootstrap_admin(session)
     finally:
         session.close()
+    scheduler.start()
     yield
+    scheduler.stop()
 
 
 app = FastAPI(title="ProjectScore API", version="0.2.0", lifespan=lifespan)
@@ -44,16 +47,7 @@ class LoginIn(BaseModel):
     password: str
 
 
-class UserIn(BaseModel):
-    email: str
-    password: str
-    name: str | None = None
-    role: str = "member"
-
-
-def _user_out(user: User) -> dict:
-    return {"id": user.id, "email": user.email, "name": user.name, "role": user.role,
-            "organization": user.org.name}
+_user_out = auth.user_out
 
 
 @api.get("/health")
@@ -87,17 +81,21 @@ def me(user: User = Depends(auth.current_user)) -> dict:
     return _user_out(user)
 
 
-@api.post("/users", status_code=201)
-def invite_user(body: UserIn, admin: User = Depends(auth.require_admin),
-                session: Session = Depends(db.get_session)) -> dict:
-    """Admins add users to their own organisation."""
-    if body.role not in ("member", "admin"):
-        raise HTTPException(422, "role must be member or admin")
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@api.post("/auth/password", status_code=204)
+def change_password(body: PasswordChangeIn, user: User = Depends(auth.current_user),
+                    session: Session = Depends(db.get_session)) -> Response:
+    if not auth.verify_password(body.current_password, user.password_hash):
+        raise HTTPException(403, "current password is incorrect")
     try:
-        user = auth.create_user(session, admin.org.name, body.email, body.password, body.role, body.name)
+        auth.set_password(session, user, body.new_password)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    return _user_out(user)
+    return Response(status_code=204)
 
 
 # ---------- Portfolio and ratings ----------
@@ -207,6 +205,19 @@ def score_history(entity_id: int, user: User = Depends(auth.current_user),
             for s in session.scalars(select(Score).where(Score.entity_id == entity_id).order_by(Score.created_at))]
 
 
+@api.get("/entities/{entity_id}/report.pdf")
+def entity_report(entity_id: int, user: User = Depends(auth.current_user),
+                  session: Session = Depends(db.get_session)) -> RawResponse:
+    from .report import build_pdf  # imported lazily: only needed when a report is requested
+
+    data = get_entity(entity_id, user, session)
+    history = score_history(entity_id, user, session)
+    pdf = build_pdf(data, history, user.org.name)
+    slug = re.sub(r"[^a-z0-9]+", "-", data["primary_domain"].lower()).strip("-")
+    return RawResponse(pdf, media_type="application/pdf",
+                       headers={"Content-Disposition": f'attachment; filename="projectscore-{slug}.pdf"'})
+
+
 def _scan_job(entity_id: int) -> None:
     session = db.SessionLocal()
     try:
@@ -234,6 +245,7 @@ def start_scan(entity_id: int, tasks: BackgroundTasks, user: User = Depends(auth
 
 
 app.include_router(api)
+app.include_router(users_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

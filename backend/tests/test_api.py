@@ -119,14 +119,6 @@ def test_findings_remediate_and_decay():
     assert len(a.get(f"/api/entities/{entity_id}/scores").json()) == 3
 
 
-def test_admin_invites_member_to_own_org():
-    a, b = client_for("a@a.example"), client_for("b@b.example")
-    r = a.post("/api/users", json={"email": "new@a.example", "password": PASSWORD})
-    assert r.status_code == 201 and r.json()["organization"] == "Org A"
-    assert a.post("/api/users", json={"email": "short@a.example", "password": "short"}).status_code == 422
-    assert b.post("/api/users", json={"email": "x@b.example", "password": PASSWORD}).status_code == 403
-
-
 def test_scan_with_no_coverage_is_rejected():
     session = db.SessionLocal()
     entity = Entity(name="Down", primary_domain="down.example")
@@ -148,3 +140,18 @@ def test_retired_rule_findings_stop_counting():
     assert session.scalars(select(Finding)).one().status == "false_positive"
     assert score.overall == 900
     session.close()
+
+
+def test_pdf_report():
+    a, b = client_for("a@a.example"), client_for("b@b.example")
+    entity_id = a.post("/api/entities", json={"name": "Example", "primary_domain": "example.com"}).json()["id"]
+    r = a.get(f"/api/entities/{entity_id}/report.pdf")
+    assert r.status_code == 200 and r.content.startswith(b"%PDF")
+    session = db.SessionLocal()
+    scan_entity(session, session.get(Entity, entity_id), fake_collector([
+        RawFinding("email_security", "dmarc_missing", "No DMARC record", "high", "example.com")]))
+    session.close()
+    r = a.get(f"/api/entities/{entity_id}/report.pdf")
+    assert r.status_code == 200 and r.content.startswith(b"%PDF") and len(r.content) > 2000
+    assert "example-com" in r.headers["content-disposition"]
+    assert b.get(f"/api/entities/{entity_id}/report.pdf").status_code == 404

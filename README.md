@@ -56,7 +56,15 @@ administrator's login. That account is created on first start.
 
 - Access is by invitation only. Each client organisation has its own private portfolio; scan results for
   a company are shared, so a vendor is scanned once however many clients monitor it.
-- Add a user (and their organisation, if new) from a shell on the server:
+- Roles: **owner** (the platform operator: manages users and organisations for every client, from the
+  Team page), **admin** (manages users in their own organisation), **member** (uses the portfolio).
+  The `ADMIN_EMAIL` account is the owner.
+- New users and password resets get a one-time temporary password on the Team page; users change it on
+  their account page.
+- Every monitored company is rescanned automatically every 7 days (`RESCAN_DAYS`). The scheduler runs
+  inside the web server, so keep a single instance or move it to a worker before scaling out.
+- Each company page has a PDF report download.
+- Users can also be added from a shell on the server:
   `python -m app.admin create-user --org "Client Ltd" --email person@client.com [--admin]`
 - Admins can also add users to their own organisation with `POST /api/users`.
 - Local demo login after `python -m app.seed`: `demo@example.com` / `demo-password-123`. For local HTTP,
