@@ -174,6 +174,13 @@ GUIDE: dict[str, dict] = {
     "attack_source": {"why": "This IP was recently seen attacking other systems, which usually means a compromised machine.",
                       "fix": ["Find the system using this IP and check it for malware or misuse.", "Patch and rebuild if compromised."],
                       "effort": "moderate", "owner": "Security team"},
+    "impersonation_*": {"why": "A website on a look-alike domain is imitating the company, usually to steal passwords or "
+                               "payments from its customers, staff or suppliers.",
+                        "fix": ["Confirm the site is not yours (or a partner's) and take screenshots as evidence.",
+                                "Report it to Google Safe Browsing and Netcraft so browsers start warning visitors.",
+                                "Send a takedown request to the domain's registrar and hosting provider (abuse contacts via ICANN Lookup).",
+                                "Warn customers and staff, and consider a UDRP complaint to recover the domain."],
+                        "effort": "moderate", "owner": "Security and legal teams"},
     "lookalike_domain_*": {"why": "Domains that look like yours are used to phish your staff, customers and suppliers.",
                            "fix": ["Check whether you own it. If so, dispute this finding.",
                                    "If not, monitor it, warn staff, and consider a takedown or UDRP complaint if it is used for phishing.",

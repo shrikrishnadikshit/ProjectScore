@@ -90,6 +90,7 @@ export const api = {
   deleteAccount: (password) => request('/account/delete', { method: 'POST', body: JSON.stringify({ password }) }),
   attackPaths: (id) => request(`/entities/${id}/attack-paths`),
   aiSecurity: (id) => request(`/entities/${id}/ai`),
+  brand: (id) => request(`/entities/${id}/brand`),
   darkWeb: (id) => request(`/entities/${id}/darkweb`),
   portfolioDarkWeb: () => request('/darkweb'),
   listQuestionnaires: (id) => request(`/entities/${id}/questionnaires`),

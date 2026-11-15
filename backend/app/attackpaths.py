@@ -38,7 +38,7 @@ def _passwords(f):
 PATHS = [
     ("phish_to_ransomware", "Phishing email leading to ransomware",
      "An attacker sends email that looks like it comes from the company, steals a password and spreads ransomware.", [
-         ("Resource development", "T1583.001", "Register a look-alike domain", _code("lookalike_domain_mail", "lookalike_domain_web"), False),
+         ("Resource development", "T1583.001", "Register a look-alike domain", _code("lookalike_domain_mail", "lookalike_domain_web", "impersonation_phishing", "impersonation_copies"), False),
          ("Initial access", "T1566", "Send convincing email as the company (spoofing not blocked)",
           _code("spf_missing", "spf_pass_all", "spf_weak", "dmarc_missing", "dmarc_monitor_only", "dmarc_partial"), True),
          ("Credential access", "T1078", "Reuse passwords already leaked in a breach", _passwords, False),
@@ -81,7 +81,7 @@ PATHS = [
     ("ai_impersonation", "AI-powered impersonation (deepfake or AI-written fraud)",
      "Attackers use AI to write flawless emails, or fake the voice or video of a leader or supplier, to get payments "
      "or passwords. Spoofable email makes the fake message look genuine.", [
-         ("Resource development", "T1583.001", "Register a look-alike domain", _code("lookalike_domain_mail", "lookalike_domain_web"), False),
+         ("Resource development", "T1583.001", "Register a look-alike domain", _code("lookalike_domain_mail", "lookalike_domain_web", "impersonation_phishing", "impersonation_copies"), False),
          ("Initial access", "T1566", "Send an AI-written or deepfake request as an executive or supplier (spoofing not blocked)",
           _code("spf_missing", "spf_pass_all", "spf_weak", "dmarc_missing", "dmarc_monitor_only", "dmarc_partial"), True),
          ("Reconnaissance", "T1589.001", "Use leaked staff details to make the fake more convincing",

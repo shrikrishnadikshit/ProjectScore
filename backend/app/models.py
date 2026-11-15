@@ -451,3 +451,16 @@ class OrgSettings(Base):
     currency: Mapped[str] = mapped_column(String(3), default="INR")
     breach_cost_usd_m: Mapped[float | None] = mapped_column(Float)  # override, in millions of US dollars
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class BrandWatch(Base):
+    """Brand protection results for a company: apps using its name, attack news and official social profiles."""
+
+    __tablename__ = "brand_watch"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), unique=True, index=True)
+    apps: Mapped[list] = mapped_column(JSON, default=list)
+    news: Mapped[list] = mapped_column(JSON, default=list)
+    social: Mapped[list] = mapped_column(JSON, default=list)
+    checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

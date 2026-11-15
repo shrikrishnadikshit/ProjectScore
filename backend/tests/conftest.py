@@ -11,6 +11,8 @@ os.environ["VENDOR_DETECTION"] = "off"
 os.environ["ASSET_PROFILES"] = "off"
 os.environ["INFOSTEALER_FEED"] = "off"
 os.environ["RANSOMWARE_LIVE"] = "off"
+os.environ["IMPERSONATION_CHECK"] = "off"
+os.environ["BRAND_WATCH"] = "off"
 
 import pytest  # noqa: E402
 

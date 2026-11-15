@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .collectors import RawFinding, breaches, compromise, darkweb, discovery, dns_health, email, lookalike, network, tls, web
+from .collectors import RawFinding, breaches, compromise, darkweb, discovery, dns_health, email, impersonation, lookalike, network, tls, web
 from .models import Asset, Entity, Finding, Score
 from .scoring import ScoringFinding, compute_score
 
@@ -53,6 +53,7 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     ips = {ip: any(ipaddress.ip_address(ip) in n for n in owned_nets) for ip in ips}
     comp_findings, comp_checked = compromise.collect(hosts, ips, entity.primary_domain)
     brand_findings, brand_checked = lookalike.collect(entity.primary_domain)
+    brand_findings += impersonation.check(entity.primary_domain, entity.name, brand_findings)
     breach_findings, breach_checked = breaches.collect(entity.primary_domain)
     dark_findings, dark_checked = darkweb.collect(entity.primary_domain, entity.name)
     coverage = {"email_security": email_assessed, "dns_health": dns_hosts, "tls": tls_hosts,
@@ -176,6 +177,9 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
 
     refresh_after_scan(session, entity)
     refresh_assets(session, entity)
+    from .brandprotect import refresh_after_scan as refresh_brand
+
+    refresh_brand(session, entity)
     try:
         from .alerts import notify
 
