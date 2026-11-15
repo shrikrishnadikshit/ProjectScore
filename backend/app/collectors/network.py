@@ -26,7 +26,7 @@ logger = logging.getLogger("projectscore.network")
 RDAP_URL = "https://rdap.org/ip/{ip}"
 INTERNETDB_URL = "https://internetdb.shodan.io/{ip}"
 SHODAN_URL = "https://api.shodan.io/shodan/host/{ip}"
-MAX_IPS = int(os.getenv("MAX_IPS_PER_ENTITY", "64"))
+MAX_IPS = int(os.getenv("MAX_IPS_PER_ENTITY", "256"))
 MAX_BLOCK_PREFIX = 22  # only expand owned blocks of 1,024 addresses or fewer
 
 # port: (code, title, severity)
@@ -208,7 +208,7 @@ def collect(hosts: list[str], entity_name: str, domain: str) -> tuple[list[RawFi
                             break
                         if str(addr) not in targets:
                             targets.append(str(addr))
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=8) as pool:
             exposures = dict(zip(targets, pool.map(lambda ip: exposure_lookup(client, ip), targets)))
 
     kev_ids = kev.kev_ids()

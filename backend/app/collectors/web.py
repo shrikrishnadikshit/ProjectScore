@@ -73,7 +73,7 @@ def _in_scope(host: str, domain: str | None) -> bool:
     return domain is None or host == domain or host.endswith("." + domain)
 
 
-def collect(hosts: list[str], workers: int = 5, domain: str | None = None) -> tuple[list[RawFinding], int, int]:
+def collect(hosts: list[str], workers: int = 16, domain: str | None = None) -> tuple[list[RawFinding], int, int]:
     """Returns findings, hosts assessed for web security, and hosts with identifiable software versions.
 
     Redirects are followed, and the page that is finally served is evaluated once and attributed to the

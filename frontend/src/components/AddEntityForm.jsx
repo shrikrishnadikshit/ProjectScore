@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
 export default function AddEntityForm({ onCreated, onCancel }) {
@@ -6,6 +6,8 @@ export default function AddEntityForm({ onCreated, onCancel }) {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const [industries, setIndustries] = useState([])
+  useEffect(() => { api.industries().then(setIndustries).catch(() => {}) }, [])
 
   async function submit(e) {
     e.preventDefault()
@@ -28,7 +30,12 @@ export default function AddEntityForm({ onCreated, onCancel }) {
       <label>Company name<input required value={form.name} onChange={set('name')} placeholder="Acme Ltd" /></label>
       <label>Primary domain<input required value={form.primary_domain} onChange={set('primary_domain')} placeholder="acme.com" /></label>
       <div className="form-row">
-        <label>Industry<input value={form.industry} onChange={set('industry')} placeholder="Financial services" /></label>
+        <label>Industry
+          <select value={form.industry} onChange={set('industry')}>
+            <option value="">Choose…</option>
+            {industries.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </label>
         <label>Vendor tier
           <select value={form.tier} onChange={set('tier')}>
             <option value={1}>Tier 1 (critical)</option>

@@ -1,15 +1,17 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
 import { api, FACTOR_LABELS, SEVERITY_ORDER } from '../api.js'
 import { GradeBadge, ScoreGauge, gradeClass } from '../components/Grade.jsx'
 import History from '../components/History.jsx'
 import Frameworks from '../components/Frameworks.jsx'
+import Insights from '../components/Insights.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
 
 export default function EntityDetail() {
   const { id } = useParams()
+  const { user } = useOutletContext()
   const [params, setParams] = useSearchParams()
   const [entity, setEntity] = useState(null)
   const [scores, setScores] = useState([])
@@ -120,6 +122,8 @@ export default function EntityDetail() {
         </div>
       </section>
 
+      {latest && <Insights entity={entity} user={user} version={latest.created_at} />}
+
       <section className="card">
         <h2>Risk factors</h2>
         {factors.length === 0 ? <p className="muted">Run a scan to see factor grades.</p> : (
@@ -185,7 +189,7 @@ export default function EntityDetail() {
       {entity.assets?.length > 0 && (
         <section className="card">
           <h2>Discovered assets</h2>
-          <p className="muted small">Found passively from certificate logs, DNS and internet registry records. Up to 25 hostnames and 64 IP addresses are checked per company.</p>
+          <p className="muted small">Found passively from certificate logs, DNS and internet registry records. Up to 100 hostnames and 256 IP addresses are checked per company.</p>
           {[['domain', 'Domains'], ['subdomain', 'Subdomains'], ['netblock', 'Registered IP ranges'], ['ip', 'IP addresses']].map(([type, label]) => {
             const items = entity.assets.filter((a) => a.type === type)
             return items.length ? (

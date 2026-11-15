@@ -61,6 +61,9 @@ export const api = {
   alertCount: () => request('/alerts/unread-count'),
   readAlert: (id) => request(`/alerts/${id}/read`, { method: 'POST' }),
   readAllAlerts: () => request('/alerts/read-all', { method: 'POST' }),
+  industries: () => request('/industries'),
+  benchmark: (id) => request(`/entities/${id}/benchmark`),
+  setIndustry: (id, industry) => request(`/entities/${id}/industry`, { method: 'PATCH', body: JSON.stringify({ industry }) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }

@@ -91,6 +91,13 @@ administrator's login. That account is created on first start.
 - Alerts: when a company drops a grade, falls 20+ points (`ALERT_SCORE_DROP`) or gets new critical/high
   issues, every organisation watching it sees an alert (nav badge and Alerts page). Email goes out through
   Resend when `RESEND_API_KEY` and `ALERT_EMAIL_FROM` are set; links use `APP_URL`.
+- Email checks include DKIM (27 common selectors; weak keys flagged). Look-alike domains (typos,
+  homoglyphs, other TLDs) are checked in DNS for the brand factor, ignoring ones on the company's own
+  nameservers. Breach history comes from the public Have I Been Pwned catalogue (CC BY 4.0), decaying
+  with a one-year half-life from the breach date (`BREACH_FEED=off` disables).
+- Patching speed: median days to fix vulnerabilities from scan history; serious ones open over 60 days add
+  a finding. Benchmarking against industry and all rated companies (groups of 5 or more only).
+- Up to 100 hostnames (`MAX_HOSTS_PER_ENTITY`) and 256 IPs (`MAX_IPS_PER_ENTITY`) per company.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

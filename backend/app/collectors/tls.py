@@ -45,7 +45,7 @@ def handshake(host: str, port: int = 443, timeout: float = 5.0) -> dict | None:
         return None  # no TLS service reachable; not a finding
 
 
-def collect(hosts: list[str], workers: int = 5) -> tuple[list[RawFinding], int]:
+def collect(hosts: list[str], workers: int = 16) -> tuple[list[RawFinding], int]:
     findings, assessed = [], 0
     hosts = netsafe.public_hosts(hosts)
     with ThreadPoolExecutor(max_workers=workers) as pool:

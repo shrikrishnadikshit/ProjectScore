@@ -97,6 +97,9 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
     # v1: replace open findings with the latest observation; previous ones become remediated.
     previous = {(f.code, f.asset_value): f for f in session.scalars(
         select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open"))}
+    from .patching import slow_patch_findings
+
+    raw += slow_patch_findings(list(previous.values()), {(r.code, r.asset_value) for r in raw}, now)
     seen = set()
     new_findings = []
     for r in raw:

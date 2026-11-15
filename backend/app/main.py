@@ -20,6 +20,7 @@ from .disputes import router as disputes_router
 from .freereport import router as freereport_router
 from .frameworks import router as frameworks_router
 from .alerts import router as alerts_router
+from .benchmark import router as benchmark_router
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -231,6 +232,9 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
          "first_seen": f.first_seen.isoformat(), "last_seen": f.last_seen.isoformat()}
         for f in session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open"))
     ]
+    from .patching import summary
+
+    out["patching"] = summary(session.scalars(select(Finding).where(Finding.entity_id == entity_id)).all())
     return out
 
 
@@ -301,6 +305,7 @@ app.include_router(disputes_router)
 app.include_router(freereport_router)
 app.include_router(frameworks_router)
 app.include_router(alerts_router)
+app.include_router(benchmark_router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

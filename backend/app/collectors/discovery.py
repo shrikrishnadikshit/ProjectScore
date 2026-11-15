@@ -4,6 +4,8 @@ Only names that sit under the entity's own domain are kept, so attribution
 confidence is high. Nothing is sent to the discovered hosts here.
 """
 
+import os
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import re
 
@@ -15,7 +17,7 @@ from .web import USER_AGENT
 logger = logging.getLogger("projectscore.discovery")
 
 CRT_SH_URL = "https://crt.sh/"
-MAX_HOSTS = 25
+MAX_HOSTS = int(os.getenv("MAX_HOSTS_PER_ENTITY", "100"))
 _LABEL_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$")
 
 
@@ -83,4 +85,6 @@ def discover_hosts(domain: str) -> list[str]:
     """Returns live subdomains found in CT logs, excluding the apex and www (always scanned)."""
     names = fetch_ct_names(domain) - {domain, f"www.{domain}"}
     candidates = prioritise(domain, names, limit=MAX_HOSTS * 2)
-    return [h for h in candidates if is_live(h)][:MAX_HOSTS - 2]
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        live = list(pool.map(is_live, candidates))
+    return [h for h, ok in zip(candidates, live) if ok][:MAX_HOSTS - 2]
