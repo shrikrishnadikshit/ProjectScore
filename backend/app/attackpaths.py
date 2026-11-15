@@ -76,6 +76,24 @@ PATHS = [
          ("Resource development", "T1584.001", "Claim the abandoned cloud resource", _code("dangling_cname"), True),
          ("Initial access", "T1566", "Host phishing pages on a trusted company address", _code("dangling_cname"), True),
      ]),
+    ("ai_impersonation", "AI-powered impersonation (deepfake or AI-written fraud)",
+     "Attackers use AI to write flawless emails, or fake the voice or video of a leader or supplier, to get payments "
+     "or passwords. Spoofable email makes the fake message look genuine.", [
+         ("Resource development", "T1583.001", "Register a look-alike domain", _code("lookalike_domain_mail", "lookalike_domain_web"), False),
+         ("Initial access", "T1566", "Send an AI-written or deepfake request as an executive or supplier (spoofing not blocked)",
+          _code("spf_missing", "spf_pass_all", "spf_weak", "dmarc_missing", "dmarc_monitor_only", "dmarc_partial"), True),
+         ("Reconnaissance", "T1589.001", "Use leaked staff details to make the fake more convincing",
+          _code("breach_"), False),
+         ("Impact", "T1657", "Trick staff into paying a fake invoice or handing over access", None, False),
+     ]),
+    ("exposed_ai_service", "Attack on an exposed AI service",
+     "An AI model server, notebook or vector database open to the internet lets an attacker run code, steal models, "
+     "prompts and data, or use the GPUs for their own purposes.", [
+         ("Reconnaissance", "T1046", "Find the open AI service", _code("ai_service_exposed"), True),
+         ("Initial access", "T1190", "Use it without a password or through a known flaw", _code("ai_service_exposed"), True),
+         ("Collection", "T1005", "Steal models, prompts, embeddings and training data", None, False),
+         ("Impact", "T1496", "Hijack the GPUs (for example for crypto-mining)", None, False),
+     ]),
     ("already_compromised", "Attacker already inside",
      "Company systems are already talking to botnets or serving malware, so an attacker may already have a foothold.", [
          ("Command and control", "T1071", "Infected system contacts attacker servers", _code("botnet_c2", "spamhaus_drop", "attack_source"), True),

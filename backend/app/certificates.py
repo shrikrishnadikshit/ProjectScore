@@ -21,7 +21,8 @@ router = APIRouter(prefix="/api")
 KINDS = {
     "iso27001": "ISO/IEC 27001", "iso27701": "ISO/IEC 27701 (privacy)", "iso22301": "ISO 22301 (continuity)",
     "soc2_type2": "SOC 2 Type II", "soc2_type1": "SOC 2 Type I", "pci_dss": "PCI DSS",
-    "cert_in_audit": "CERT-In empanelled audit", "rbi_audit": "RBI / SEBI cyber audit", "other": "Other",
+    "cert_in_audit": "CERT-In empanelled audit", "rbi_audit": "RBI / SEBI cyber audit",
+    "iso42001": "ISO/IEC 42001 (AI management)", "other": "Other",
 }
 REMIND_DAYS = 30
 # Risk factors that contradict a clean certificate when our scans show serious issues in them.

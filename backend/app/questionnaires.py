@@ -50,6 +50,10 @@ QUESTIONS: list[tuple[str, str, str, list[str]]] = [
     ("bcp1", "Business continuity", "Are backups tested and kept offline or immutable?", []),
     ("bcp2", "Business continuity", "Is a business continuity plan tested at least yearly?", []),
     ("ppl1", "People", "Do all staff complete security awareness training, including phishing, every year?", []),
+    ("ai1", "AI security", "Do you keep an inventory of the AI systems and AI services you use, with an approved AI use policy?", []),
+    ("ai2", "AI security", "Is our data kept out of AI model training, and do you know which AI providers process it?", []),
+    ("ai3", "AI security", "Are your AI features tested for prompt injection and the other OWASP Top 10 risks for LLM applications?", []),
+    ("ai4", "AI security", "Are AI model servers, notebooks and vector databases kept off the public internet and protected by authentication?", ["ai_service_exposed"]),
     ("sup1", "Supply chain", "Do you assess the security of your own critical suppliers?", []),
 ]
 QUESTION_IDS = {q[0] for q in QUESTIONS}

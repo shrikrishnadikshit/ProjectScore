@@ -31,7 +31,7 @@ SIGNALS = [
     ("old_software", "Outdated or end-of-life internet-facing software", 0.7,
      lambda f: f.code in ("known_cves", "openssl_heartbleed_risk") or f.code.endswith(("_eol", "_eol_old", "_outdated"))),
     ("exposed_services", "Databases, file transfer or admin interfaces open to the internet", 0.6,
-     lambda f: f.code.startswith(("db_exposed", "ftp_exposed", "docker_api_exposed", "ics_exposed"))),
+     lambda f: f.code.startswith(("db_exposed", "ftp_exposed", "docker_api_exposed", "ics_exposed", "ai_service_exposed"))),
     ("phishing", "Email can be spoofed (missing or unenforced SPF/DMARC)", 0.5,
      lambda f: f.code in ("spf_missing", "spf_pass_all", "dmarc_missing", "dmarc_monitor_only")),
     ("lookalikes", "Look-alike domains that can send email", 0.2, lambda f: f.code == "lookalike_domain_mail"),

@@ -7,6 +7,7 @@ question a customer asks on the day of a big incident: "which of my vendors are 
 
 from __future__ import annotations
 
+import re
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends
@@ -28,6 +29,18 @@ PRODUCTS = {
     "openssl": ("openssl", "openssl"),
     "lighttpd": ("lighttpd", "lighttpd"),
 }
+
+# AI and machine-learning software in the KEV catalogue (vendor, product or vulnerability name).
+AI_PATTERN = re.compile(
+    r"\b(langflow|langchain|llama|ollama|mlflow|comfyui|gradio|jupyter|triton inference|tensorflow|pytorch|"
+    r"hugging ?face|openai|anthropic|litellm|vllm|anyscale|ray (dashboard|framework|cluster)|kubeflow|"
+    r"h2o|nvidia (triton|nemo|merlin)|copilot|chatgpt|gemini|bedrock|sagemaker|vertex ai|machine learning|"
+    r"artificial intelligence|\bllm\b|large language model|\bai\b)", re.I)
+
+
+def is_ai(e: dict) -> bool:
+    text = " ".join(str(e.get(k) or "") for k in ("vendorProject", "product", "vulnerabilityName", "shortDescription"))
+    return bool(AI_PATTERN.search(text))
 
 
 def _software(f: Finding) -> str | None:
@@ -56,7 +69,7 @@ def match(events: list[dict], findings: list[Finding], names: dict[int, str]) ->
         maybe -= exact
         affected = ([{"id": i, "name": names[i], "match": "confirmed"} for i in sorted(exact, key=names.get)]
                     + [{"id": i, "name": names[i], "match": "same software"} for i in sorted(maybe, key=names.get)])
-        out.append({**e, "ransomware": (e.get("knownRansomwareCampaignUse") or "").lower() == "known",
+        out.append({**e, "ransomware": (e.get("knownRansomwareCampaignUse") or "").lower() == "known", "ai": is_ai(e),
                     "affected": affected})
     return out
 
@@ -69,12 +82,14 @@ def recent(entries: list[dict], days: int, today: date | None = None) -> list[di
 
 
 @router.get("/threat-events")
-def threat_events(days: int = 30, user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)) -> dict:
+def threat_events(days: int = 30, ai_only: bool = False, user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)) -> dict:
     days = max(1, min(days, 365))
     items = session.scalars(select(PortfolioItem).where(PortfolioItem.org_id == user.org_id)).all()
     names = {i.entity_id: i.entity.name for i in items}
     findings = session.scalars(select(Finding).where(Finding.entity_id.in_(list(names)), Finding.status == "open")).all()
     entries = kev.kev_entries()
     events = match(recent(entries, days), findings, names)
-    return {"days": days, "catalogue_loaded": bool(entries), "events": events,
+    if ai_only:
+        events = [e for e in events if e["ai"]]
+    return {"days": days, "catalogue_loaded": bool(entries), "events": events, "ai_only": ai_only,
             "affected_companies": len({a["id"] for e in events for a in e["affected"]})}

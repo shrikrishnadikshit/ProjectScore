@@ -146,6 +146,12 @@ GUIDE: dict[str, dict] = {
                      "fix": ["Remove the database from the internet; allow only application servers on a private network.",
                              "Require authentication and rotate credentials.", "Check whether data was accessed."],
                      "effort": "quick", "owner": "Infrastructure team"},
+    "ai_service_exposed_*": {"why": "AI model servers, notebooks and vector databases usually have no password by default. "
+                                    "Attackers use them to steal models, prompts and data, run code, or mine cryptocurrency on your GPUs.",
+                             "fix": ["Confirm what is running on this port; if it is an AI service, take it off the internet.",
+                                     "Put it behind a VPN or an authenticating proxy and turn on its own authentication.",
+                                     "Update it to the latest version and check logs for unknown use."],
+                             "effort": "quick", "owner": "AI / data platform team"},
     "snmp_exposed_*": {"why": "SNMP can leak device configuration and is used in amplification attacks.",
                        "fix": ["Block UDP 161 from the internet; use SNMPv3 internally."], "effort": "quick", "owner": "Network team"},
     "ics_exposed_*": {"why": "Industrial and building control systems on the internet can be manipulated physically.",

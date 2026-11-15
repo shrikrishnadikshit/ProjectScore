@@ -53,6 +53,17 @@ RISKY_PORTS = {
     2375: ("docker_api_exposed", "Docker API exposed to the internet", "critical"),
     6443: ("k8s_api_exposed", "Kubernetes API exposed to the internet", "medium"),
 }
+# AI services that are often left open with no password: model servers, AI notebooks and dashboards,
+# vector databases. Matched on port only, so confidence is lower than for the classic services above.
+AI_PORTS = {
+    11434: ("Ollama model server", "high"),
+    8265: ("Ray dashboard (AI cluster, abused in the ShadowRay campaign)", "critical"),
+    7860: ("Gradio AI app", "medium"),
+    8188: ("ComfyUI image-generation server", "high"),
+    8888: ("Jupyter notebook server", "high"),
+    19530: ("Milvus vector database", "high"),
+    6333: ("Qdrant vector database", "high"),
+}
 GENERIC_WORDS = {"inc", "ltd", "llc", "plc", "corp", "corporation", "company", "group", "limited", "the",
                  "holdings", "services", "technologies", "technology", "solutions", "international", "global",
                  "pvt", "private", "gmbh", "network", "networks", "systems", "data", "cloud", "com", "net", "org"}
@@ -166,6 +177,11 @@ def evaluate_exposure(ip: str, data: dict, kev_ids: frozenset[str]) -> list[RawF
             code, title, severity = RISKY_PORTS[port]
             findings.append(RawFinding("network_exposure", f"{code}_{port}", title, severity, ip,
                                        {"port": port, "source": _exposure_source()}, 0.9))
+        elif port in AI_PORTS:
+            what, severity = AI_PORTS[port]
+            findings.append(RawFinding("network_exposure", f"ai_service_exposed_{port}",
+                                       f"AI service possibly exposed to the internet ({what})", severity, ip,
+                                       {"port": port, "service": what, "ai": True, "source": _exposure_source()}, 0.6))
     vulns = sorted({v.upper() for v in data.get("vulns", [])})
     exploited = [v for v in vulns if v in kev_ids]
     if exploited:

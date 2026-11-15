@@ -11,9 +11,10 @@ export default function Threats() {
   const [rsi, setRsi] = useState([])
   const [certs, setCerts] = useState(null)
   const [onlyMine, setOnlyMine] = useState(true)
+  const [onlyAi, setOnlyAi] = useState(false)
   useEffect(() => { api.threatEvents(days).then(setEvents).catch(() => setEvents({ events: [], catalogue_loaded: false })) }, [days])
   useEffect(() => { api.portfolioRansomware().then(setRsi).catch(() => {}); api.portfolioCertificates().then(setCerts).catch(() => {}) }, [])
-  const shown = events ? events.events.filter((e) => !onlyMine || e.affected.length) : []
+  const shown = events ? events.events.filter((e) => !onlyMine || e.affected.length).filter((e) => !onlyAi || e.ai) : []
 
   return (
     <>
@@ -35,10 +36,11 @@ export default function Threats() {
               <option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={90}>Last 90 days</option>
             </select>
             <label className="check small"><input type="checkbox" checked={onlyMine} onChange={(e) => setOnlyMine(e.target.checked)} />Only ones affecting my vendors</label>
+            <label className="check small"><input type="checkbox" checked={onlyAi} onChange={(e) => setOnlyAi(e.target.checked)} />Only AI software</label>
           </div>
         </div>
         {!events ? <p className="muted pad">Loading…</p> : !events.catalogue_loaded ? <p className="muted pad">The vulnerability catalogue could not be loaded just now. Try again in a few minutes.</p> : shown.length === 0 ? (
-          <p className="muted pad">{onlyMine ? `None of the ${events.events.length} newly exploited vulnerabilities in this period match your vendors.` : 'No new entries in this period.'}</p>
+          <p className="muted pad">{onlyAi ? 'No newly exploited vulnerabilities in AI software match these filters.' : onlyMine ? `None of the ${events.events.length} newly exploited vulnerabilities in this period match your vendors.` : 'No new entries in this period.'}</p>
         ) : (
           <div className="table-scroll">
             <table>
@@ -49,7 +51,7 @@ export default function Threats() {
                     <td className="small">{e.dateAdded}</td>
                     <td>
                       <div className="strong">{e.vulnerabilityName}</div>
-                      <div className="small"><span className="mono">{e.cveID}</span> · {e.vendorProject} {e.product}{e.ransomware && <span className="sev sev-critical" style={{ marginLeft: 6 }}>used in ransomware</span>}</div>
+                      <div className="small"><span className="mono">{e.cveID}</span> · {e.vendorProject} {e.product}{e.ai && <span className="sev sev-info" style={{ marginLeft: 6 }}>AI</span>}{e.ransomware && <span className="sev sev-critical" style={{ marginLeft: 6 }}>used in ransomware</span>}</div>
                       {e.requiredAction && <div className="small muted">{e.requiredAction}</div>}
                     </td>
                     <td className="small">{e.affected.length === 0 ? <span className="muted">None</span> : e.affected.map((a) => <div key={a.id}><Link to={`/entities/${a.id}`}>{a.name}</Link> <span className="muted">({a.match})</span></div>)}</td>
