@@ -29,6 +29,8 @@ def _kev(f):
 
 
 def _passwords(f):
+    if f.code == "infostealer_employees":
+        return f.severity in ("high", "medium")
     return f.code.startswith("breach_") and any("password" in c.lower() for c in (f.evidence or {}).get("data_classes", []))
 
 
@@ -96,7 +98,7 @@ PATHS = [
      ]),
     ("already_compromised", "Attacker already inside",
      "Company systems are already talking to botnets or serving malware, so an attacker may already have a foothold.", [
-         ("Command and control", "T1071", "Infected system contacts attacker servers", _code("botnet_c2", "spamhaus_drop", "attack_source"), True),
+         ("Command and control", "T1071", "Infected system contacts attacker servers", _code("botnet_c2", "spamhaus_drop", "attack_source", "ransomware_leak_"), True),
          ("Execution", "T1608.001", "Malware is hosted on company systems", _code("malware_hosting"), False),
      ]),
 ]

@@ -27,6 +27,7 @@ T = {
     "T1589.001": "Gather Victim Identity Information: Credentials",
     "T1486": "Data Encrypted for Impact (ransomware)",
     "T1046": "Network Service Discovery",
+    "T1555": "Credentials from Password Stores",
 }
 
 # Rules are checked in order; the first whose prefix matches the finding code wins.
@@ -66,6 +67,8 @@ RULES: list[tuple[str, list[str]]] = [
     ("spamhaus_drop", ["T1584"]),
     ("attack_source", ["T1584"]),
     ("breach_", ["T1078", "T1589.001"]),
+    ("ransomware_leak_", ["T1486", "T1657"]),
+    ("infostealer_", ["T1078", "T1555"]),
 ]
 SUFFIX_RULES: list[tuple[str, list[str]]] = [
     ("_vulnerable", ["T1189"]),        # vulnerable JavaScript libraries run in visitors' browsers

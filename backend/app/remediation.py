@@ -178,6 +178,23 @@ GUIDE: dict[str, dict] = {
                            "fix": ["Check whether you own it. If so, dispute this finding.",
                                    "If not, monitor it, warn staff, and consider a takedown or UDRP complaint if it is used for phishing.",
                                    "Enforce DMARC so the real domain cannot be spoofed."], "effort": "moderate", "owner": "Brand / security team"},
+    "ransomware_leak_*": {"why": "A ransomware group says it has breached this company and may publish or sell its data. "
+                                 "Vendors in this state can lose your data and be unable to deliver services.",
+                          "fix": ["Ask the company to confirm the incident and whether your data was affected.",
+                                  "Request their incident report, containment status and notification timeline.",
+                                  "Review and limit their access to your systems until they confirm recovery."],
+                          "effort": "major", "owner": "Incident response team"},
+    "infostealer_employees": {"why": "Malware on staff computers stole saved passwords and session cookies, which are sold to "
+                                     "ransomware gangs as ready-made ways in (no phishing needed).",
+                              "fix": ["Reset passwords and revoke sessions for affected staff accounts.",
+                                      "Require phishing-resistant multi-factor authentication for all remote and SaaS access.",
+                                      "Stop staff saving work passwords in browsers on personal devices; use managed devices with EDR."],
+                              "effort": "moderate", "owner": "Identity and endpoint team"},
+    "infostealer_customers": {"why": "Customers' own infected computers leaked their logins to this company's sites, "
+                                     "which enables account takeover.",
+                              "fix": ["Offer or require multi-factor authentication for customer accounts.",
+                                      "Detect logins from leaked credentials and force a password reset."],
+                              "effort": "moderate", "owner": "Product security team"},
     "breach_*": {"why": "A past breach exposed account data; reused passwords from it are used in credential-stuffing attacks.",
                  "fix": ["Force password resets for affected accounts if not done.", "Require MFA for staff and customers.",
                          "Confirm the root cause was fixed."], "effort": "moderate", "owner": "Security team"},

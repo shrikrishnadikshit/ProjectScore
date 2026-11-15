@@ -15,6 +15,7 @@ import Certificates from '../components/Certificates.jsx'
 import Systems from '../components/Systems.jsx'
 import AttackPaths from '../components/AttackPaths.jsx'
 import AiSecurity from '../components/AiSecurity.jsx'
+import DarkWeb from '../components/DarkWeb.jsx'
 import VendorShares from '../components/VendorShares.jsx'
 
 const POLL_MS = 3000
@@ -155,6 +156,7 @@ export default function EntityDetail() {
         )}
       </section>
 
+      {latest && <DarkWeb entityId={id} version={`${latest.created_at}-${findings.length}`} />}
       {latest && <AttackPaths entityId={id} version={`${latest.created_at}-${findings.length}`} />}
       {latest && <AiSecurity entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 

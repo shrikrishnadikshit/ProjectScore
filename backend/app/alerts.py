@@ -37,7 +37,12 @@ def events(entity: Entity, previous: Score | None, current: Score, new_findings:
         out.append({"kind": "score_drop", "severity": "critical" if current.grade in "DF" and worse_grade else "warning",
                     "title": f"{entity.name}: score fell from {previous.overall} ({previous.grade}) to {current.overall} ({current.grade})",
                     "detail": None})
-    serious = [f for f in new_findings if f.severity in ("critical", "high")]
+    dark = [f for f in new_findings if (f.evidence or {}).get("darkweb") and f.severity in ("critical", "high", "medium")]
+    if dark:
+        out.append({"kind": "dark_web", "severity": "critical" if any(f.code.startswith("ransomware_leak_") for f in dark) else "warning",
+                    "title": f"{entity.name}: found on the dark web",
+                    "detail": "\n".join(f.title for f in dark[:5])})
+    serious = [f for f in new_findings if f.severity in ("critical", "high") and f not in dark]
     if serious:
         crit = any(f.severity == "critical" for f in serious)
         lines = [f"{f.severity.title()}: {f.title} ({f.asset_value})" for f in serious[:10]]

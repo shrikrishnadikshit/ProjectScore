@@ -36,9 +36,9 @@ SIGNALS = [
      lambda f: f.code in ("spf_missing", "spf_pass_all", "dmarc_missing", "dmarc_monitor_only")),
     ("lookalikes", "Look-alike domains that can send email", 0.2, lambda f: f.code == "lookalike_domain_mail"),
     ("compromised", "Signs of an existing compromise (botnet or malware activity)", 1.2,
-     lambda f: f.code in ("botnet_c2", "malware_hosting", "spamhaus_drop")),
-    ("leaked_passwords", "Recent data breach that exposed passwords", 0.6,
-     lambda f: f.code.startswith("breach_") and any("password" in c.lower() for c in (f.evidence or {}).get("data_classes", []))),
+     lambda f: f.code in ("botnet_c2", "malware_hosting", "spamhaus_drop") or f.code.startswith("ransomware_leak_")),
+    ("leaked_passwords", "Recent data breach or infostealer malware that exposed staff passwords", 0.6,
+     lambda f: f.code == "infostealer_employees" and f.severity in ("high", "medium") or f.code.startswith("breach_") and any("password" in c.lower() for c in (f.evidence or {}).get("data_classes", []))),
     ("slow_patching", "Serious issues left unfixed for more than 30 days", 0.5, lambda f: f.code.startswith("slow_patch_")),
 ]
 # Sectors most often hit in public ransomware reporting (e.g. CERT-In, Sophos and Verizon DBIR reports).

@@ -10,10 +10,11 @@ export default function Threats() {
   const [events, setEvents] = useState(null)
   const [rsi, setRsi] = useState([])
   const [certs, setCerts] = useState(null)
+  const [dark, setDark] = useState(null)
   const [onlyMine, setOnlyMine] = useState(true)
   const [onlyAi, setOnlyAi] = useState(false)
   useEffect(() => { api.threatEvents(days).then(setEvents).catch(() => setEvents({ events: [], catalogue_loaded: false })) }, [days])
-  useEffect(() => { api.portfolioRansomware().then(setRsi).catch(() => {}); api.portfolioCertificates().then(setCerts).catch(() => {}) }, [])
+  useEffect(() => { api.portfolioRansomware().then(setRsi).catch(() => {}); api.portfolioCertificates().then(setCerts).catch(() => {}); api.portfolioDarkWeb().then(setDark).catch(() => {}) }, [])
   const shown = events ? events.events.filter((e) => !onlyMine || e.affected.length).filter((e) => !onlyAi || e.ai) : []
 
   return (
@@ -21,7 +22,7 @@ export default function Threats() {
       <div className="page-head">
         <div>
           <h1>Threats</h1>
-          <p className="muted">Newly announced vulnerabilities that attackers are already using, and which of your vendors they affect. Also: which vendors are most exposed to ransomware, and whose certificates are lapsing.</p>
+          <p className="muted">Newly announced vulnerabilities that attackers are already using, and which of your vendors they affect. Also: vendors seen on the dark web, which vendors are most exposed to ransomware, and whose certificates are lapsing.</p>
         </div>
       </div>
 
@@ -62,6 +63,32 @@ export default function Threats() {
           </div>
         )}
       </section>
+
+      {dark && (
+        <section className="card table-card">
+          <div style={{ padding: '20px 20px 0' }}>
+            <h2>Dark web</h2>
+            <p className="muted small">Vendors named on ransomware leak sites, and vendors whose staff logins were stolen by infostealer malware and traded on the dark web.{dark.attribution.length > 0 && ` Sources: ${dark.attribution.join(', ')}.`}{!dark.sources.leak_sites && ' The ransomware leak-site check is switched off until its data licence is in place.'}</p>
+          </div>
+          {dark.companies.length === 0 ? <p className="muted pad">None of your vendors has been seen on the dark web so far.</p> : (
+            <div className="table-scroll">
+              <table>
+                <thead><tr><th>Company</th><th>Leak sites</th><th className="num">Infected staff computers</th><th>Last infection</th></tr></thead>
+                <tbody>
+                  {dark.companies.map((c) => (
+                    <tr key={c.entity_id} className="static">
+                      <td><Link to={`/entities/${c.entity_id}`} className="row-title">{c.name}</Link> <span className={`sev sev-${c.level}`}>{c.level}</span></td>
+                      <td className="small">{c.leak_sites.length === 0 ? <span className="muted">Not listed</span> : c.leak_sites.map((l) => <div key={l.id}>{l.group} ({l.event_date})</div>)}</td>
+                      <td className="num strong">{c.employees.toLocaleString()}</td>
+                      <td className="small">{c.last_employee ? new Date(c.last_employee).toLocaleDateString() : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="card table-card">
         <h2 style={{ padding: '20px 20px 0' }}>Ransomware susceptibility by vendor</h2>

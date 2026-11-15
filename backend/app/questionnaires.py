@@ -43,6 +43,7 @@ QUESTIONS: list[tuple[str, str, str, list[str]]] = [
     ("net1", "Network security", "Are databases, remote desktop and admin interfaces kept off the public internet?", ["network_exposure"]),
     ("web1", "Application security", "Do your web applications follow secure development practices (for example OWASP ASVS)?", ["web_security"]),
     ("mon1", "Monitoring", "Are security logs collected centrally and kept for at least 180 days?", []),
+    ("mon3", "Monitoring", "Do you monitor the dark web for your leaked data and staff logins stolen by malware, and act on what you find?", []),
     ("mon2", "Monitoring", "Do you monitor for malware and compromised systems around the clock?", ["compromise"]),
     ("ir1", "Incident response", "Do you have a tested incident response plan?", []),
     ("ir2", "Incident response", "Will you notify us within 24 hours of a security incident affecting our data?", []),
