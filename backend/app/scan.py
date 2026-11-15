@@ -46,6 +46,11 @@ def run_collectors(entity: Entity) -> tuple[list[RawFinding], dict[str, int]]:
     return email_findings + dns_findings + tls_findings + web_findings, coverage
 
 
+# Finding codes produced by rules that were later found to be wrong. Existing findings with these
+# codes are treated as false positives instead of decaying slowly as if they had been remediated.
+RETIRED_CODES = {"cookie_flags"}
+
+
 class NothingAssessed(Exception):
     pass
 
@@ -75,8 +80,14 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
                                 detection_confidence=r.detection_confidence, evidence=r.evidence,
                                 first_seen=now, last_seen=now))
     for key, f in previous.items():
-        if key not in seen and f.risk_factor in assessed:
+        if f.code in RETIRED_CODES:
+            f.status = "false_positive"
+        elif key not in seen and f.risk_factor in assessed:
             f.status = "remediated"
+    for f in session.scalars(select(Finding).where(Finding.entity_id == entity.id,
+                                                   Finding.status == "remediated",
+                                                   Finding.code.in_(RETIRED_CODES))):
+        f.status = "false_positive"
     for host in hosts_for(entity):
         if not any(a.value == host for a in entity.assets):
             session.add(Asset(entity_id=entity.id, type="domain" if host == entity.primary_domain else "subdomain",

@@ -135,3 +135,16 @@ def test_scan_with_no_coverage_is_rejected():
     with pytest.raises(NothingAssessed):
         scan_entity(session, entity, lambda e: ([], {"email_security": 0, "tls": 0}))
     session.close()
+
+
+def test_retired_rule_findings_stop_counting():
+    session = db.SessionLocal()
+    entity = Entity(name="R", primary_domain="r.example")
+    session.add(entity)
+    session.commit()
+    scan_entity(session, entity, fake_collector([
+        RawFinding("web_security", "cookie_flags", "old rule", "low", "r.example")]))
+    score = scan_entity(session, entity, fake_collector([]))
+    assert session.scalars(select(Finding)).one().status == "false_positive"
+    assert score.overall == 900
+    session.close()
