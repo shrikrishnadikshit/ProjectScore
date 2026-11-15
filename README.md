@@ -113,6 +113,10 @@ administrator's login. That account is created on first start.
   ranked by rating points recovered, with "score after quick fixes" and "after all fixes".
 - Advisory and remediation help: customers click "Get expert help" (fix guidance call, hands-on remediation,
   vendor follow-up, deeper assessment); the owner replies and tracks status on the Advisory page.
+- Source code reviews with free open-source scanners: Gitleaks (leaked secrets), OSV-Scanner (vulnerable
+  libraries with CVEs) and Bandit (insecure Python). Admins give a public GitHub/GitLab/Bitbucket link or
+  upload a zip (50 MB). Code is only read, never run, and is deleted when the review ends; only findings
+  are kept, with secrets redacted. One review at a time, 10 a day per organisation.
 - CVEs show CVSS base scores (NIST NVD) and EPSS exploit probability (FIRST), fetched in the background after
   each scan and cached for 14 days. `NVD_API_KEY` (free from NVD) raises the lookup rate. Published-CVE
   findings are sized by their worst CVSS (9+ high, 7+ medium, otherwise low).

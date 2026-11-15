@@ -42,6 +42,7 @@ export default function Layout() {
           <NavLink to="/advisory">Advisory</NavLink>
           <NavLink to="/alerts">Alerts{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/in-depth">In-depth scans</NavLink>}
+          <NavLink to="/code-reviews">Code reviews</NavLink>
           {(user.role === 'admin' || user.role === 'owner') && <NavLink to="/team">Team</NavLink>}
           {user.role === 'owner' && <NavLink to="/disputes">Disputes</NavLink>}
           {user.role === 'owner' && <NavLink to="/leads">Leads</NavLink>}

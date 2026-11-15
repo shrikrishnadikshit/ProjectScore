@@ -28,6 +28,7 @@ from .sso import router as sso_router
 from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
+from . import codereview
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -54,6 +55,7 @@ async def lifespan(_: FastAPI):
     try:
         auth.bootstrap_admin(session)
         fail_interrupted_scans(session)
+        codereview.fail_interrupted(session)
     finally:
         session.close()
     scheduler.start()
@@ -324,6 +326,7 @@ app.include_router(sso_router)
 app.include_router(incidents_router)
 app.include_router(remediation_router)
 app.include_router(advisory_router)
+app.include_router(codereview.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

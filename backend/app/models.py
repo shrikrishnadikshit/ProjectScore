@@ -337,3 +337,22 @@ class CveInfo(Base):
     epss_percentile: Mapped[float | None] = mapped_column(Float)
     description: Mapped[str | None] = mapped_column(String(1000))
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CodeReview(Base):
+    """A source code review: the code is scanned with free tools and only the findings are kept."""
+
+    __tablename__ = "code_reviews"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    requested_by: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    name: Mapped[str] = mapped_column(String(200))
+    source_type: Mapped[str] = mapped_column(String(10))  # git, zip
+    source: Mapped[str] = mapped_column(String(500))
+    status: Mapped[str] = mapped_column(String(20), default="queued")  # queued, running, done, failed
+    error: Mapped[str | None] = mapped_column(String(1000))
+    results: Mapped[list] = mapped_column(JSON, default=list)
+    summary: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

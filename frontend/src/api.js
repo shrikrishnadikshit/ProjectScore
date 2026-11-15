@@ -82,6 +82,18 @@ export const api = {
   advisoryServices: () => request('/advisory/services'),
   requestAdvisory: (id, data) => request(`/entities/${id}/advisory`, { method: 'POST', body: JSON.stringify(data) }),
   listAdvisory: () => request('/advisory'),
+  listCodeReviews: () => request('/code-reviews'),
+  getCodeReview: (id) => request(`/code-reviews/${id}`),
+  startGitReview: (url, confirm) => request('/code-reviews/git', { method: 'POST', body: JSON.stringify({ url, confirm }) }),
+  uploadCodeReview: async (file, confirm) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('confirm', confirm ? 'true' : 'false')
+    const res = await fetch('/api/code-reviews/upload', { method: 'POST', body: form, credentials: 'same-origin' })
+    const body = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(body?.detail || `Upload failed (${res.status})`)
+    return body
+  },
   updateAdvisory: (id, status, owner_note) => request(`/advisory/${id}`, { method: 'POST', body: JSON.stringify({ status, owner_note }) }),
   listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),

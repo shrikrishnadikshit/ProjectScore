@@ -14,6 +14,7 @@ import FreeReport from './pages/FreeReport.jsx'
 import Leads from './pages/Leads.jsx'
 import Alerts from './pages/Alerts.jsx'
 import Advisory from './pages/Advisory.jsx'
+import CodeReviews from './pages/CodeReviews.jsx'
 import QuestionnaireView from './pages/QuestionnaireView.jsx'
 import VendorQuestionnaire from './pages/VendorQuestionnaire.jsx'
 import './styles.css'
@@ -35,6 +36,8 @@ createRoot(document.getElementById('root')).render(
           <Route path="/leads" element={<Leads />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/advisory" element={<Advisory />} />
+          <Route path="/code-reviews" element={<CodeReviews />} />
+          <Route path="/code-reviews/:reviewId" element={<CodeReviews />} />
           <Route path="/questionnaires/:id" element={<QuestionnaireView />} />
           <Route path="/in-depth" element={<DeepScans />} />
           <Route path="/in-depth/:scanId" element={<DeepScans />} />

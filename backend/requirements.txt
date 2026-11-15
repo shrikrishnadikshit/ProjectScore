@@ -8,3 +8,5 @@ psycopg[binary]>=3.2
 reportlab>=4.2
 pytest>=8.0
 sentry-sdk[fastapi]>=2.19
+python-multipart>=0.0.9
+bandit>=1.8
