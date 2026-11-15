@@ -82,6 +82,9 @@ administrator's login. That account is created on first start.
 - Compromise signals: hostnames and IPs are matched against free public threat feeds (abuse.ch Feodo
   Tracker and URLhaus, Spamhaus DROP, blocklist.de), cached for 6 hours. A botnet or malware hit caps the
   score at 640. Set `COMPROMISE_FEEDS=off` to disable.
+- Free rating report at `/free-report` for prospects: work email must be at the domain; shows score, grade,
+  factor grades and issue counts but no hostnames or IPs; reuses a rating under 7 days old; 3 requests per IP
+  per day. Requests appear as leads on the owner's Leads page.
 - Disputes: any user can dispute a finding on a company in their portfolio, and rated companies can use the
   public form on `/scanner`. The owner decides on the Disputes page. Accepting marks the finding as a false
   positive, keeps it from returning on later scans and recalculates the score at once.

@@ -54,6 +54,9 @@ export const api = {
   entityDisputes: (id) => request(`/entities/${id}/disputes`),
   listDisputes: () => request('/disputes'),
   decideDispute: (id, status, note) => request(`/disputes/${id}`, { method: 'POST', body: JSON.stringify({ status, note }) }),
+  requestFreeReport: (data) => request('/public/free-report', { method: 'POST', body: JSON.stringify(data) }),
+  getFreeReport: (token) => request(`/public/free-report/${encodeURIComponent(token)}`),
+  listLeads: () => request('/free-reports'),
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }
 

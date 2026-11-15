@@ -204,3 +204,20 @@ class Dispute(Base):
     reviewer_note: Mapped[str | None] = mapped_column(String(2000))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class FreeReport(Base):
+    """A one-time rating summary requested from the public free-report page (a sales lead)."""
+
+    __tablename__ = "free_reports"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    domain: Mapped[str] = mapped_column(String(255), index=True)
+    contact_email: Mapped[str] = mapped_column(String(320))
+    name: Mapped[str | None] = mapped_column(String(255))
+    organisation: Mapped[str | None] = mapped_column(String(255))
+    entity_id: Mapped[int | None] = mapped_column(ForeignKey("entities.id", ondelete="SET NULL"))
+    status: Mapped[str] = mapped_column(String(20), default="scanning")  # scanning, ready, failed
+    message: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
