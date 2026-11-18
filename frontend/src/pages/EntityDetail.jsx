@@ -14,6 +14,7 @@ import Ransomware from '../components/Ransomware.jsx'
 import Certificates from '../components/Certificates.jsx'
 import Systems from '../components/Systems.jsx'
 import AttackPaths from '../components/AttackPaths.jsx'
+import ThreatGroups from '../components/ThreatGroups.jsx'
 import AiSecurity from '../components/AiSecurity.jsx'
 import DarkWeb from '../components/DarkWeb.jsx'
 import BrandProtection from '../components/BrandProtection.jsx'
@@ -160,6 +161,7 @@ export default function EntityDetail() {
       {latest && <BrandProtection entityId={id} version={`${latest.created_at}-${findings.length}`} />}
       {latest && <DarkWeb entityId={id} version={`${latest.created_at}-${findings.length}`} />}
       {latest && <AttackPaths entityId={id} version={`${latest.created_at}-${findings.length}`} />}
+      {latest && <ThreatGroups entityId={id} version={`${latest.created_at}-${findings.length}`} />}
       {latest && <AiSecurity entityId={id} version={`${latest.created_at}-${findings.length}`} />}
 
       {latest && <Ransomware entityId={id} version={`${latest.created_at}-${findings.length}`} />}

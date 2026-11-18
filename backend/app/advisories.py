@@ -58,6 +58,7 @@ SOURCES = [
     {"name": "CISA Cybersecurity Advisories", "url": "https://www.cisa.gov/news-events/cybersecurity-advisories", "use": "Advisories and ICS advisories linked to CVEs"},
     {"name": "CIRCL Vulnerability-Lookup", "url": "https://vulnerability.circl.lu/", "use": "Sightings: seen, exploited, proof-of-concept published"},
     {"name": "FIRST EPSS", "url": "https://www.first.org/epss/", "use": "Chance of exploitation in the next 30 days"},
+    {"name": "MITRE ATT&CK", "url": "https://attack.mitre.org/", "use": "Ransomware group profiles and attack techniques"},
     {"name": "CERT-In", "url": "https://www.cert-in.org.in/", "use": "Indian advisories and vulnerability notes (facts and links only)"},
 ]
 _lock = threading.Lock()

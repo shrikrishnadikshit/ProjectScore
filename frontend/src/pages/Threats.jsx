@@ -16,9 +16,13 @@ export default function Threats() {
   const [cisa, setCisa] = useState(null)
   const [cisaMine, setCisaMine] = useState(false)
   const [sources, setSources] = useState([])
+  const [groups, setGroups] = useState(null)
+  const [groupOpen, setGroupOpen] = useState(null)
+  const [groupsAll, setGroupsAll] = useState(false)
   const [onlyMine, setOnlyMine] = useState(true)
   const [onlyAi, setOnlyAi] = useState(false)
   useEffect(() => { api.cisaAdvisories(days).then(setCisa).catch(() => setCisa(null)) }, [days])
+  useEffect(() => { api.threatGroups().then(setGroups).catch(() => setGroups(null)) }, [])
   useEffect(() => { api.advisorySources().then((d) => setSources(d.sources)).catch(() => {}) }, [])
   useEffect(() => { api.certin(days).then(setCert).catch(() => setCert(null)) }, [days])
   useEffect(() => { api.threatEvents(days).then(setEvents).catch(() => setEvents({ events: [], catalogue_loaded: false })) }, [days])
@@ -127,6 +131,42 @@ export default function Threats() {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {groups && (
+        <section className="card table-card">
+          <div className="section-head" style={{ padding: '20px 20px 0' }}>
+            <div>
+              <h2>Ransomware groups</h2>
+              <p className="muted small">{groups.groups} groups and {groups.families} ransomware families from MITRE ATT&CK, with the vendors whose weaknesses match each one's usual way in. Click a name for its profile.</p>
+            </div>
+            <label className="check small"><input type="checkbox" checked={groupsAll} onChange={(e) => setGroupsAll(e.target.checked)} />Show all, not only those that could reach my vendors</label>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th>Group or ransomware</th><th>How it gets in</th><th>Your vendors it could reach</th></tr></thead>
+              <tbody>
+                {groups.profiles.filter((p) => groupsAll || p.vendors.length).map((p) => (
+                  <tr key={p.id} className="static">
+                    <td>
+                      <button className="link-btn strong" onClick={() => setGroupOpen(groupOpen === p.id ? null : p.id)} aria-expanded={groupOpen === p.id}>{p.name}</button>
+                      <div className="small muted">{p.kind === 'group' ? 'Group' : 'Ransomware'} · {p.id}{p.aliases.length ? ` · also ${p.aliases.slice(0, 3).join(', ')}` : ''}</div>
+                      {groupOpen === p.id && <div className="small" style={{ marginTop: 6, maxWidth: 520 }}>
+                        <p>{p.description}</p>
+                        {p.kind === 'group' && p.ransomware.length > 0 && <p>Ransomware used: {p.ransomware.join(', ')}</p>}
+                        <p><a href={p.url} target="_blank" rel="noreferrer">Full profile on MITRE ATT&CK</a> ({p.technique_count} techniques)</p>
+                      </div>}
+                    </td>
+                    <td className="small">{p.entry_techniques.length ? p.entry_techniques.slice(0, 5).map((t) => <div key={t.id}><a href={t.url} target="_blank" rel="noreferrer">{t.name}</a></div>) : <span className="muted">Not recorded</span>}</td>
+                    <td className="small">{p.vendors.length === 0 ? <span className="muted">None</span> : p.vendors.map((v) => <div key={v.entity_id}><Link to={`/entities/${v.entity_id}`}>{v.name}</Link> <span className="muted">({v.via.join(', ')})</span></div>)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!groupsAll && !groups.profiles.some((p) => p.vendors.length) && <p className="muted pad small">None of your vendors shows a weakness these groups usually use to get in.</p>}
+          </div>
+          <p className="muted small pad">MITRE ATT&CK v{groups.version}. {groups.notice}</p>
         </section>
       )}
 

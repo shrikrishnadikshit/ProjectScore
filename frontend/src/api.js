@@ -75,6 +75,8 @@ export const api = {
   rescanVendorShare: (token) => request(`/public/vendor-share/${encodeURIComponent(token)}/rescan`, { method: 'POST' }),
   entityRansomware: (id) => request(`/entities/${id}/ransomware`),
   portfolioRansomware: () => request('/ransomware'),
+  threatGroups: () => request('/threat-groups'),
+  entityThreatGroups: (id) => request(`/entities/${id}/threat-groups`),
   cisaAdvisories: (days = 30) => request(`/advisories?days=${days}`),
   advisorySources: () => request('/advisories/sources'),
   certin: (days = 30) => request(`/certin?days=${days}`),
