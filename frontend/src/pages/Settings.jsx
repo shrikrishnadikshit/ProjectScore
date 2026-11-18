@@ -58,6 +58,7 @@ export default function Settings() {
           {isAdmin ? <div className="actions"><button className="btn primary">Save</button></div> : <p className="muted small">Only admins can change these settings.</p>}
         </form>
       </section>
+      <Thresholds isAdmin={isAdmin} />
       <SecurityPolicy isAdmin={isAdmin} />
       <Integrations isAdmin={isAdmin} />
     </>
@@ -80,6 +81,46 @@ function SecurityPolicy({ isAdmin }) {
       <p className="muted small">Each person sets it up from Your account. Until they do, they can only reach the setup page.</p>
       {error && <p className="error">{error}</p>}
       {isAdmin && <p className="small"><Link to="/audit">Open the audit log</Link> to see who changed what.</p>}
+    </section>
+  )
+}
+
+const SEVS = ['critical', 'high', 'medium', 'low']
+
+function Thresholds({ isAdmin }) {
+  const [p, setP] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const [error, setError] = useState(null)
+  useEffect(() => { api.orgPreferences().then(setP).catch(() => {}) }, [])
+  if (!p) return null
+  async function save(e) {
+    e.preventDefault(); setMsg(null); setError(null)
+    try { setP(await api.setOrgPreferences(p)); setMsg('Saved.') } catch (err) { setError(err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.') }
+  }
+  const box = (k, label) => <label className="check"><input type="checkbox" disabled={!isAdmin} checked={p[k]} onChange={(e) => setP({ ...p, [k]: e.target.checked })} />{label}</label>
+  return (
+    <section className="card">
+      <h2>Monitoring and fix deadlines</h2>
+      <form className="form" onSubmit={save} style={{ maxWidth: 'none' }}>
+        <label>Rescan your companies every
+          <select disabled={!isAdmin} value={p.rescan_days} onChange={(e) => setP({ ...p, rescan_days: Number(e.target.value) })}>
+            {[1, 3, 7].map((d) => <option key={d} value={d}>{d === 1 ? 'day' : `${d} days`}</option>)}
+          </select>
+        </label>
+        <label>Alert when a score falls by at least (points)
+          <input type="number" min="5" max="300" disabled={!isAdmin} value={p.score_drop} onChange={(e) => setP({ ...p, score_drop: Number(e.target.value) })} />
+        </label>
+        {box('alert_grade_change', 'Alert when the grade gets worse')}
+        {box('alert_new_critical', 'Alert on new critical issues')}
+        {box('alert_new_high', 'Alert on new high-severity issues')}
+        <p className="small strong" style={{ marginTop: 8 }}>Days allowed to fix an issue</p>
+        <div className="form-row">
+          {SEVS.map((s) => <label key={s} style={{ textTransform: 'capitalize' }}>{s}<input type="number" min="1" max="730" disabled={!isAdmin} value={p.sla_days[s]} onChange={(e) => setP({ ...p, sla_days: { ...p.sla_days, [s]: Number(e.target.value) } })} /></label>)}
+        </div>
+        {error && <p className="error">{error}</p>}
+        {msg && <p className="small ok">{msg}</p>}
+        {isAdmin && <div className="actions"><button className="btn primary">Save</button></div>}
+      </form>
     </section>
   )
 }

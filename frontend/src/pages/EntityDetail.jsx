@@ -19,6 +19,7 @@ import AiSecurity from '../components/AiSecurity.jsx'
 import DarkWeb from '../components/DarkWeb.jsx'
 import BrandProtection from '../components/BrandProtection.jsx'
 import VendorShares from '../components/VendorShares.jsx'
+import VendorProfile from '../components/VendorProfile.jsx'
 
 const POLL_MS = 3000
 const POLL_LIMIT = 100 // up to 5 minutes; discovery can take a while for large estates
@@ -219,6 +220,7 @@ export default function EntityDetail() {
         )}
       </section>
 
+      <VendorProfile entityId={id} user={user} />
       <VendorShares entityId={id} entityName={entity.name} user={user} />
 
       <Questionnaires entityId={id} user={user} />

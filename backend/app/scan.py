@@ -185,6 +185,13 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
 
     refresh_brand(session, entity)
     try:
+        from .workflow import verify_after_scan
+
+        verify_after_scan(session, entity)
+    except Exception:
+        logger.exception("could not verify fix tasks for %s", entity.primary_domain)
+        session.rollback()
+    try:
         from .alerts import notify
 
         notify(session, entity, previous_score, score, new_findings)

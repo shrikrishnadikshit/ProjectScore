@@ -601,3 +601,70 @@ class AuditEvent(Base):
     ip: Mapped[str | None] = mapped_column(String(64))
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))
+
+
+class RemediationTask(Base):
+    """One issue type at one company, assigned to someone with a due date, closed when a rescan confirms the fix."""
+
+    __tablename__ = "remediation_tasks"
+    __table_args__ = (UniqueConstraint("org_id", "entity_id", "code"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(255))
+    severity: Mapped[str] = mapped_column(String(15))
+    assignee_id: Mapped[int | None] = mapped_column(Integer)
+    assignee_email: Mapped[str | None] = mapped_column(String(320))  # e.g. the vendor's contact
+    due: Mapped[date | None] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(20), default="open")  # open, in_progress, fixed, verified, accepted, wont_fix
+    note: Mapped[str | None] = mapped_column(String(2000))
+    history: Mapped[list] = mapped_column(JSON, default=list)
+    created_by: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RiskAcceptance(Base):
+    """A decision to live with a risk for a time: a whole vendor or one issue type, with approver and expiry."""
+
+    __tablename__ = "risk_acceptances"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str | None] = mapped_column(String(80))  # None = the vendor as a whole
+    reason: Mapped[str] = mapped_column(String(2000))
+    controls: Mapped[str | None] = mapped_column(String(2000))  # compensating controls
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, approved, rejected, expired, revoked
+    requested_by: Mapped[int | None] = mapped_column(Integer)
+    approver_id: Mapped[int | None] = mapped_column(Integer)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_on: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OrgPreferences(Base):
+    """Per-organisation thresholds: fix deadlines by severity and when to raise alerts."""
+
+    __tablename__ = "org_preferences"
+
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True)
+    settings: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class VendorProfile(Base):
+    """What a vendor does for the organisation, and its offboarding checklist (BRS TPRM-001, TPRM-009)."""
+
+    __tablename__ = "vendor_profiles"
+    __table_args__ = (UniqueConstraint("org_id", "entity_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    contract_end: Mapped[date | None] = mapped_column(Date)
+    offboarding: Mapped[dict] = mapped_column(JSON, default=dict)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

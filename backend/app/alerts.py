@@ -26,14 +26,16 @@ def score_drop_threshold() -> int:
     return int(os.environ.get("ALERT_SCORE_DROP", "20"))
 
 
-def events(entity: Entity, previous: Score | None, current: Score, new_findings: list[Finding]) -> list[dict]:
-    """Nothing on a company's first scan: everything would look new."""
+def events(entity: Entity, previous: Score | None, current: Score, new_findings: list[Finding],
+           prefs: dict | None = None) -> list[dict]:
+    """Nothing on a company's first scan: everything would look new. `prefs` are the organisation's thresholds."""
     if previous is None:
         return []
+    prefs = prefs or {}
     out = []
     drop = previous.overall - current.overall
-    worse_grade = GRADES.index(current.grade) > GRADES.index(previous.grade)
-    if drop >= score_drop_threshold() or worse_grade:
+    worse_grade = GRADES.index(current.grade) > GRADES.index(previous.grade) and prefs.get("alert_grade_change", True)
+    if drop >= prefs.get("score_drop", score_drop_threshold()) or worse_grade:
         out.append({"kind": "score_drop", "severity": "critical" if current.grade in "DF" and worse_grade else "warning",
                     "title": f"{entity.name}: score fell from {previous.overall} ({previous.grade}) to {current.overall} ({current.grade})",
                     "detail": None})
@@ -42,7 +44,8 @@ def events(entity: Entity, previous: Score | None, current: Score, new_findings:
         out.append({"kind": "dark_web", "severity": "critical" if any(f.code.startswith("ransomware_leak_") for f in dark) else "warning",
                     "title": f"{entity.name}: found on the dark web",
                     "detail": "\n".join(f.title for f in dark[:5])})
-    serious = [f for f in new_findings if f.severity in ("critical", "high") and f not in dark]
+    wanted = {s for s, k in (("critical", "alert_new_critical"), ("high", "alert_new_high")) if prefs.get(k, True)}
+    serious = [f for f in new_findings if f.severity in wanted and f not in dark]
     if serious:
         crit = any(f.severity == "critical" for f in serious)
         lines = [f"{f.severity.title()}: {f.title} ({f.asset_value})" for f in serious[:10]]
@@ -63,15 +66,18 @@ def _count_text(serious: list[Finding]) -> str:
 
 def notify(session: Session, entity: Entity, previous: Score | None, current: Score,
            new_findings: list[Finding]) -> list[Alert]:
-    evs = events(entity, previous, current, new_findings)
-    if not evs:
+    from .workflow import prefs
+
+    org_ids = set(session.scalars(select(PortfolioItem.org_id).where(PortfolioItem.entity_id == entity.id)).all())
+    per_org = {o: events(entity, previous, current, new_findings, prefs(session, o)) for o in org_ids}
+    alerts = [Alert(org_id=o, entity_id=entity.id, **e) for o, evs in per_org.items() for e in evs]
+    if not alerts:
         return []
-    org_ids = session.scalars(select(PortfolioItem.org_id).where(PortfolioItem.entity_id == entity.id)).all()
-    alerts = [Alert(org_id=o, entity_id=entity.id, **e) for o in set(org_ids) for e in evs]
     session.add_all(alerts)
     session.commit()
     if os.environ.get("RESEND_API_KEY") and os.environ.get("ALERT_EMAIL_FROM"):
-        for org_id in set(org_ids):
+        for org_id in [o for o, evs in per_org.items() if evs]:
+            evs = per_org[org_id]
             to = session.scalars(select(User.email).where(User.org_id == org_id, User.active.is_(True))).all()
             if to:
                 threading.Thread(target=send_email, args=(list(to), entity.id, evs), daemon=True).start()

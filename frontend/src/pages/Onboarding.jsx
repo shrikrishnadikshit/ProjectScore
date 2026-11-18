@@ -141,6 +141,7 @@ function Detail({ id }) {
       <section className="tiles">
         <div className="tile"><div className="tile-label">Inherent risk</div><div className="tile-value">{ob.level ? `${LEVEL[ob.level]}` : '—'}</div><div className="muted small">{ob.inherent_score != null ? `${ob.inherent_score} of 100, before any controls` : 'Finish the intake'}</div></div>
         <div className="tile"><div className="tile-label">Tier</div><div className="tile-value">{ob.tier ? `Tier ${ob.tier}` : '—'}</div><div className="muted small">{ob.tier ? `Reassessed every ${{ 1: 6, 2: 12, 3: 24 }[ob.tier]} months` : 'Set from the intake'}</div></div>
+        <div className="tile"><div className="tile-label">Residual risk</div><div className="tile-value">{ob.residual ? LEVEL[ob.residual.level] : '—'}</div><div className="muted small">{ob.residual ? `${ob.residual.score} of 100, after its controls (rating ${ob.residual.inputs.rating}${ob.residual.inputs.questionnaire != null ? `, questionnaire ${ob.residual.inputs.questionnaire}%` : ''})` : 'Needs the intake and a first scan'}</div></div>
         <div className="tile"><div className="tile-label">Stage</div><div className="tile-value">{STAGE[ob.stage]}</div></div>
       </section>
 

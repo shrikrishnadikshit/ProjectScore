@@ -29,6 +29,12 @@ def test_due_entities_are_monitored_and_stale():
     s.add(never)
     s.flush()
     s.add(PortfolioItem(org_id=org.id, entity_id=never.id))
+    from app.models import OrgPreferences
+
+    s.add(OrgPreferences(org_id=org.id, settings={"rescan_days": 7}))
     s.commit()
     assert scheduler.due_entity_ids(s, now) == [ents["older"], ents["stale"]]
+    s.query(OrgPreferences).delete()
+    s.commit()  # default: daily
+    assert scheduler.due_entity_ids(s, now) == [ents["older"], ents["stale"], ents["fresh"]]
     s.close()

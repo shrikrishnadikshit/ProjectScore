@@ -1,4 +1,7 @@
-"""Continuous monitoring: rescans every monitored company once a week (BRS continuous monitoring).
+"""Continuous monitoring: rescans every monitored company daily by default (BRS TPRM-020, NFR-003).
+
+Each organisation can choose 1, 3 or 7 days; a company is rescanned on the shortest cadence any
+organisation monitoring it has chosen.
 
 Runs as a background thread inside the web server. Suitable for a single server instance; with
 several instances, move this to a dedicated worker or cron job so scans are not duplicated.
@@ -18,7 +21,7 @@ from .scan import NothingAssessed, scan_entity
 
 logger = logging.getLogger("projectscore.scheduler")
 
-RESCAN_AFTER = timedelta(days=int(os.getenv("RESCAN_DAYS", "7")))
+RESCAN_AFTER = timedelta(days=int(os.getenv("RESCAN_DAYS", "1")))
 CHECK_EVERY_SECONDS = int(os.getenv("SCHEDULER_INTERVAL_SECONDS", "3600"))
 PAUSE_BETWEEN_SCANS_SECONDS = 5
 
@@ -35,11 +38,19 @@ def due_entity_ids(session, now: datetime | None = None) -> list[int]:
     rows = session.execute(
         select(Entity.id, latest.c.last).join(latest, latest.c.entity_id == Entity.id)
         .where(Entity.id.in_(monitored)).order_by(latest.c.last)).all()
-    cutoff = now - RESCAN_AFTER
+    from .workflow import prefs
+
+    org_days = {}
+    cadence: dict[int, int] = {}
+    for entity_id, org_id in session.execute(select(PortfolioItem.entity_id, PortfolioItem.org_id)).all():
+        if org_id not in org_days:
+            org_days[org_id] = prefs(session, org_id)["rescan_days"]
+        cadence[entity_id] = min(cadence.get(entity_id, 99), org_days[org_id])
     due = []
     for entity_id, last in rows:
         last = last if last.tzinfo else last.replace(tzinfo=timezone.utc)
-        if last <= cutoff:
+        # a little slack so a daily rescan does not drift later by the scheduler's check interval each day
+        if last <= now - timedelta(days=cadence.get(entity_id, RESCAN_AFTER.days)) + timedelta(minutes=30):
             due.append(entity_id)
     return due
 
@@ -97,10 +108,16 @@ def _loop() -> None:
             logger.exception("CISA advisory refresh failed")
         try:
             from .onboarding import review_reminders
+            from .workflow import expire_acceptances, overdue_alerts
 
             session = db.SessionLocal()
             try:
                 review_reminders(session)
+                overdue_alerts(session)
+                expire_acceptances(session)
+                from .vendorprofile import contract_reminders
+
+                contract_reminders(session)
             finally:
                 session.close()
         except Exception:

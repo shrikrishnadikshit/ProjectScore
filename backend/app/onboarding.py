@@ -123,11 +123,26 @@ def _out(session: Session, ob: VendorOnboarding, detail: bool = False) -> dict:
            "review_due": bool(ob.next_review and ob.next_review <= today),
            "updated_at": ob.updated_at.isoformat() if ob.updated_at else None}
     if detail:
+        out["residual"] = residual_for(session, ob)
         out.update({"intake": ob.intake or {}, "decision_note": ob.decision_note, "history": ob.history or [],
                     "requirements": REQUIREMENTS.get(ob.tier or 3, []),
                     "checks": checks(session, ob) if ob.tier else [],
                     "questions": [{"key": k, "text": t, "options": list(opts)} for k, t, opts in INTAKE]})
     return out
+
+
+def residual_for(session: Session, ob: VendorOnboarding) -> dict | None:
+    from .questionnaires import score_answers, selected
+    from .workflow import residual
+
+    latest = session.scalars(select(Score).where(Score.entity_id == ob.entity_id)
+                             .order_by(Score.created_at.desc(), Score.id.desc())).first()
+    q = session.scalars(select(Questionnaire).where(Questionnaire.org_id == ob.org_id, Questionnaire.entity_id == ob.entity_id,
+                                                    Questionnaire.status.in_(("submitted", "reviewed")))
+                        .order_by(Questionnaire.created_at.desc())).first()
+    qscore = score_answers(q.answers or {}, selected(session, q)) if q else None
+    sev = [s for (s,) in session.execute(select(Finding.severity).where(Finding.entity_id == ob.entity_id, Finding.status == "open"))]
+    return residual(ob.inherent_score, latest.overall if latest else None, qscore, sev.count("critical"), sev.count("high"))
 
 
 def _own(session: Session, user: User, oid: int) -> VendorOnboarding:

@@ -12,6 +12,25 @@ export default function FixPlan({ entityId, version }) {
   const [services, setServices] = useState([])
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(null)
+  const [tasks, setTasks] = useState({})
+  const [people, setPeople] = useState([])
+  const [trackForm, setTrackForm] = useState(null)
+  const [acceptForm, setAcceptForm] = useState(null)
+  const [flash, setFlash] = useState(null)
+  const loadTasks = () => api.listTasks(`?entity_id=${entityId}&open_only=false`).then((d) => setTasks(Object.fromEntries(d.tasks.map((t) => [t.code, t])))).catch(() => {})
+  useEffect(() => { loadTasks(); api.colleagues().then(setPeople).catch(() => {}) }, [entityId, version])
+  async function track(e) {
+    e.preventDefault(); setError(null)
+    try {
+      await api.createTask({ entity_id: Number(entityId), code: trackForm.code, assignee_id: trackForm.who && !trackForm.who.includes('@') ? Number(trackForm.who) : null,
+        assignee_email: trackForm.who?.includes('@') ? trackForm.who : (trackForm.email || null), note: trackForm.note || null })
+      setTrackForm(null); loadTasks()
+    } catch (err) { setError(err.message) }
+  }
+  async function accept(e) {
+    e.preventDefault(); setError(null)
+    try { await api.requestAcceptance({ entity_id: Number(entityId), ...acceptForm }); setAcceptForm(null); setFlash('Risk acceptance requested. An admin approves it on the Fixes page.') } catch (err) { setError(err.message) }
+  }
   const [jira, setJira] = useState(false)
   const [tickets, setTickets] = useState({})
   useEffect(() => { api.listIntegrations().then((d) => setJira(d.jira.connected && d.jira.enabled !== false)).catch(() => {}) }, [])
@@ -45,6 +64,7 @@ export default function FixPlan({ entityId, version }) {
         <div><div className="stat">{plan.after_quick_fixes}</div><div className="muted small">after the quick fixes</div></div>
         <div><div className="stat">{plan.after_all_fixes}</div><div className="muted small">after fixing everything listed</div></div>
       </div>
+      {flash && <div className="banner">{flash}</div>}
       {sent && <div className="banner">Request sent. Our team will contact you, usually within one working day. Track it on the <Link to="/advisory">Advisory</Link> page.</div>}
       {helpForm && (
         <form className="form" onSubmit={requestHelp} style={{ maxWidth: 'none' }}>
@@ -80,6 +100,27 @@ export default function FixPlan({ entityId, version }) {
                 <ol>{it.fix.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 {it.certin && <p className="small">Guidance: <a href={it.certin.url} target="_blank" rel="noreferrer">{it.certin.label}</a></p>}
                 <p className="muted">Affected: <span className="mono">{it.assets.slice(0, 10).join(', ')}{it.assets.length > 10 ? ` and ${it.assets.length - 10} more` : ''}</span></p>
+                {tasks[it.code] ? <p><strong>Tracked:</strong> {tasks[it.code].assignee || 'unassigned'}, due {tasks[it.code].due}, <Link to="/fixes">{tasks[it.code].status.replace('_', ' ')}</Link></p>
+                  : trackForm?.code === it.code ? (
+                    <form className="form" onSubmit={track} style={{ maxWidth: 'none' }}>
+                      <div className="form-row">
+                        <label>Owner<select value={trackForm.who} onChange={(e) => setTrackForm({ ...trackForm, who: e.target.value })}>
+                          <option value="">Unassigned</option>{people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+                        <label>Or the vendor's contact email<input type="email" value={trackForm.email || ''} onChange={(e) => setTrackForm({ ...trackForm, email: e.target.value })} /></label>
+                      </div>
+                      <label>Note<input value={trackForm.note || ''} onChange={(e) => setTrackForm({ ...trackForm, note: e.target.value })} /></label>
+                      <p className="muted small">The due date is set from your deadline for {it.severity} issues; change it later on the Fixes page.</p>
+                      <div className="actions"><button type="button" className="btn ghost" onClick={() => setTrackForm(null)}>Cancel</button><button className="btn primary">Create task</button></div>
+                    </form>
+                  ) : acceptForm?.code === it.code ? (
+                    <form className="form" onSubmit={accept} style={{ maxWidth: 'none' }}>
+                      <label>Why is this risk acceptable for now?<textarea rows={2} required minLength={10} value={acceptForm.reason} onChange={(e) => setAcceptForm({ ...acceptForm, reason: e.target.value })} /></label>
+                      <label>Compensating controls (optional)<input value={acceptForm.controls} onChange={(e) => setAcceptForm({ ...acceptForm, controls: e.target.value })} /></label>
+                      <label>Accept until<input type="date" required value={acceptForm.expires_on} onChange={(e) => setAcceptForm({ ...acceptForm, expires_on: e.target.value })} /></label>
+                      <div className="actions"><button type="button" className="btn ghost" onClick={() => setAcceptForm(null)}>Cancel</button><button className="btn primary">Request acceptance</button></div>
+                    </form>
+                  ) : <p><button className="btn ghost" onClick={() => setTrackForm({ code: it.code, who: '' })}>Track fix</button>{' '}
+                      <button className="btn ghost" onClick={() => setAcceptForm({ code: it.code, reason: '', controls: '', expires_on: new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10) })}>Accept risk</button></p>}
                 {jira && (tickets[it.code]?.key
                   ? <p>Jira issue created: <a href={tickets[it.code].url} target="_blank" rel="noreferrer">{tickets[it.code].key}</a></p>
                   : <p><button className="btn ghost" disabled={tickets[it.code]?.busy} onClick={() => ticket(it.code)}>Create Jira issue</button>
