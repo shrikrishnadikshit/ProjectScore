@@ -8,6 +8,8 @@ export default function Login({ onSignedIn }) {
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [providers, setProviders] = useState([])
+  const [challenge, setChallenge] = useState(() => new URLSearchParams(window.location.search).get('mfa'))
+  const [code, setCode] = useState('')
   useEffect(() => {
     api.ssoProviders().then(setProviders).catch(() => {})
     const code = new URLSearchParams(window.location.search).get('sso_error')
@@ -26,7 +28,14 @@ export default function Login({ onSignedIn }) {
     setBusy(true)
     setError(null)
     try {
-      onSignedIn(await api.login(email, password))
+      if (challenge) {
+        const u = await api.mfaLogin(challenge, code)
+        window.history.replaceState(null, '', window.location.pathname)
+        return onSignedIn(u)
+      }
+      const r = await api.login(email, password)
+      if (r.mfa_required) { setChallenge(r.challenge); setCode(''); return }
+      onSignedIn(r)
     } catch (err) {
       setError(err.message.charAt(0).toUpperCase() + err.message.slice(1))
     } finally {
@@ -44,10 +53,16 @@ export default function Login({ onSignedIn }) {
           ProjectScore
         </div>
         <h2>Sign in</h2>
-        <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
-        <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        {challenge ? <>
+          <label>Code from your authenticator app<input inputMode="numeric" autoComplete="one-time-code" autoFocus required value={code} onChange={(e) => setCode(e.target.value)} /></label>
+          <p className="muted small">Lost your phone? Enter one of your recovery codes instead.</p>
+        </> : <>
+          <label>Email<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
+          <label>Password<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
+        </>}
         {error && <p className="error">{error}</p>}
-        <button className="btn primary" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+        <button className="btn primary" disabled={busy}>{busy ? 'Signing in…' : challenge ? 'Verify' : 'Sign in'}</button>
+        {challenge && <button type="button" className="link-btn small" onClick={() => { setChallenge(null); setError(null) }}>Start again</button>}
         {providers.length > 0 && <>
           <div className="divider muted small"><span>or</span></div>
           {providers.map((p) => <a key={p.id} className="btn ghost sso-btn" href={`/api/auth/sso/${p.id}/start`}>Sign in with {p.label}</a>)}

@@ -189,7 +189,16 @@ def callback(provider: str, request: Request, session: Session = Depends(db.get_
     user = session.scalars(select(User).where(func.lower(User.email) == email)).first()
     if user is None or not user.active:
         return _fail("no_account")
+    from . import mfa
+    from .audit import record
+
+    if mfa.enabled(session, user):
+        # the account has its own second step: ask for it before signing in
+        resp = RedirectResponse(f"/?mfa={mfa.challenge_for(user)}", status_code=302)
+        resp.delete_cookie(STATE_COOKIE, path="/api/auth/sso")
+        return resp
     resp = RedirectResponse("/", status_code=302)
     resp.delete_cookie(STATE_COOKIE, path="/api/auth/sso")
     auth.start_session(session, user, resp)
+    record(session, user, "sign_in", provider)
     return resp

@@ -146,6 +146,9 @@ def current_user(request: Request, session: Session = Depends(db.get_session)) -
     expires = row.expires_at if row.expires_at.tzinfo else row.expires_at.replace(tzinfo=timezone.utc)
     if expires < datetime.now(timezone.utc) or not row.user.active:
         raise HTTPException(401, "session expired")
+    from .mfa import gate
+
+    gate(request, session, row.user)
     return row.user
 
 

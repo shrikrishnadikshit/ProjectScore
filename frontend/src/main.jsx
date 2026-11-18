@@ -21,6 +21,7 @@ import Threats from './pages/Threats.jsx'
 import Policy from './pages/Policy.jsx'
 import Settings from './pages/Settings.jsx'
 import Onboarding from './pages/Onboarding.jsx'
+import AuditLog from './pages/AuditLog.jsx'
 import Reputation from './pages/Reputation.jsx'
 import Methodology from './pages/Methodology.jsx'
 import Legal from './pages/Legal.jsx'
@@ -55,6 +56,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/threats" element={<Threats />} />
           <Route path="/policy" element={<Policy />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/audit" element={<AuditLog />} />
           <Route path="/onboarding/:id" element={<Onboarding />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/reputation" element={<Reputation />} />

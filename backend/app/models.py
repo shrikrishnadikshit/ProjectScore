@@ -560,3 +560,44 @@ class CisaAdvisory(Base):
     published: Mapped[date | None] = mapped_column(Date)
     cves: Mapped[list] = mapped_column(JSON, default=list)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class UserMfa(Base):
+    """Two-step login with an authenticator app (TOTP, RFC 6238). Recovery codes are stored hashed."""
+
+    __tablename__ = "user_mfa"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    secret: Mapped[str] = mapped_column(String(64))
+    enabled: Mapped[bool] = mapped_column(default=False)
+    recovery: Mapped[list] = mapped_column(JSON, default=list)
+    last_step: Mapped[int] = mapped_column(Integer, default=0)  # blocks reuse of a code
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class OrgSecurity(Base):
+    """An organisation's sign-in rules."""
+
+    __tablename__ = "org_security"
+
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), primary_key=True)
+    require_mfa: Mapped[bool] = mapped_column(default=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AuditEvent(Base):
+    """Who did what, when. Each row carries a hash of the previous one, so edits or deletions are detectable."""
+
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+    org_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    user_id: Mapped[int | None] = mapped_column(Integer)
+    actor: Mapped[str | None] = mapped_column(String(320))
+    action: Mapped[str] = mapped_column(String(60))
+    target: Mapped[str | None] = mapped_column(String(300))
+    status: Mapped[int | None] = mapped_column(Integer)
+    ip: Mapped[str | None] = mapped_column(String(64))
+    prev_hash: Mapped[str] = mapped_column(String(64))
+    hash: Mapped[str] = mapped_column(String(64))

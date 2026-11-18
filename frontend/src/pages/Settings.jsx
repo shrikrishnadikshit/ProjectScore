@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { api } from '../api.js'
 import Integrations from '../components/Integrations.jsx'
 
@@ -58,7 +58,28 @@ export default function Settings() {
           {isAdmin ? <div className="actions"><button className="btn primary">Save</button></div> : <p className="muted small">Only admins can change these settings.</p>}
         </form>
       </section>
+      <SecurityPolicy isAdmin={isAdmin} />
       <Integrations isAdmin={isAdmin} />
     </>
+  )
+}
+
+function SecurityPolicy({ isAdmin }) {
+  const [p, setP] = useState(null)
+  const [error, setError] = useState(null)
+  useEffect(() => { api.orgSecurity().then(setP).catch(() => {}) }, [])
+  if (!p) return null
+  async function toggle(e) {
+    setError(null)
+    try { setP(await api.setOrgSecurity(e.target.checked)) } catch (err) { setError(err.message.charAt(0).toUpperCase() + err.message.slice(1) + '.') }
+  }
+  return (
+    <section className="card">
+      <h2>Sign-in security</h2>
+      <label className="check"><input type="checkbox" disabled={!isAdmin} checked={p.require_mfa} onChange={toggle} />Require two-step login for everyone in the organisation</label>
+      <p className="muted small">Each person sets it up from Your account. Until they do, they can only reach the setup page.</p>
+      {error && <p className="error">{error}</p>}
+      {isAdmin && <p className="small"><Link to="/audit">Open the audit log</Link> to see who changed what.</p>}
+    </section>
   )
 }

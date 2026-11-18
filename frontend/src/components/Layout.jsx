@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { api, setUnauthorizedHandler } from '../api.js'
 import Login from '../pages/Login.jsx'
+import MfaSetup from './MfaSetup.jsx'
 
 export default function Layout() {
   const [user, setUser] = useState(undefined) // undefined = checking, null = signed out
@@ -29,7 +30,11 @@ export default function Layout() {
   }
 
   if (user === undefined) return null
-  if (user === null) return <Login onSignedIn={setUser} />
+  if (user === null) return <Login onSignedIn={() => api.me().then(setUser).catch(() => setUser(null))} />
+  if (user.mfa_required && !user.mfa_enabled) {
+    return <div className="login-wrap"><div style={{ maxWidth: 520, margin: '0 auto' }}><MfaSetup forced onChange={() => api.me().then(setUser)} />
+      <p className="small"><button className="link-btn" onClick={signOut}>Sign out</button></p></div></div>
+  }
 
   return (
     <div className="shell">

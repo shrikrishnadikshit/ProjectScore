@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { api } from '../api.js'
+import MfaSetup from '../components/MfaSetup.jsx'
 
 export default function Account() {
   const { user } = useOutletContext()
@@ -40,6 +41,7 @@ export default function Account() {
         {message && <p className="strong">{message}</p>}
         <div className="actions"><button className="btn primary">Change password</button></div>
       </form>
+      <MfaSetup />
       <PrivacyRights />
     </>
   )

@@ -29,7 +29,7 @@ from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
 from .attack import techniques as attack_techniques
-from . import account, advisories, threatgroups, ai, assets, integrations, onboarding, brandprotect, certin, darkweb, standards, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
+from . import account, advisories, audit, mfa, threatgroups, ai, assets, integrations, onboarding, brandprotect, certin, darkweb, standards, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -86,6 +86,12 @@ async def security_middleware(request: Request, call_next):
         if origin and origin != "null" and urlsplit(origin).netloc != request.headers.get("host"):
             return JSONResponse({"detail": "cross-site request refused"}, status_code=403)
     response = await call_next(request)
+    if request.method in UNSAFE_METHODS and response.status_code < 500:
+        from fastapi.concurrency import run_in_threadpool
+
+        from .audit import from_request
+
+        await run_in_threadpool(from_request, request, response.status_code)
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -121,9 +127,19 @@ def login(body: LoginIn, response: Response, session: Session = Depends(db.get_s
     user = auth.authenticate(session, body.email, body.password)
     if user is None:
         auth.throttle.fail(key)
+        from .audit import record
+
+        known = session.scalars(select(User).where(User.email == key)).first()
+        record(session, None, "sign_in_failed", key[:300], org_id=known.org_id if known else None, actor=key[:320])
         raise HTTPException(401, "email or password is incorrect")
     auth.throttle.reset(key)
+    from . import mfa
+    from .audit import record
+
+    if mfa.enabled(session, user):
+        return {"mfa_required": True, "challenge": mfa.challenge_for(user)}
     auth.start_session(session, user, response)
+    record(session, user, "sign_in", "password")
     return _user_out(user)
 
 
@@ -135,8 +151,11 @@ def logout(request: Request, response: Response, session: Session = Depends(db.g
 
 
 @api.get("/auth/me")
-def me(user: User = Depends(auth.current_user)) -> dict:
-    return _user_out(user)
+def me(user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)) -> dict:
+    from . import mfa
+
+    return {**_user_out(user), "mfa_enabled": mfa.enabled(session, user),
+            "mfa_required": mfa.org_requires(session, user.org_id)}
 
 
 class PasswordChangeIn(BaseModel):
@@ -444,6 +463,8 @@ app.include_router(onboarding.router)
 app.include_router(integrations.router)
 app.include_router(advisories.router)
 app.include_router(threatgroups.router)
+app.include_router(mfa.router)
+app.include_router(audit.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
