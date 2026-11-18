@@ -10,6 +10,7 @@ export default function ThreatGroups({ entityId, version }) {
     <section className="card">
       <h2>Ransomware groups that could get in</h2>
       <p className="muted small">Known ransomware groups and families whose usual way in matches something we saw at this company, from MITRE ATT&CK's public records of how each one operates. It shows who could exploit these weaknesses, not that anyone is targeting this company.</p>
+      {data.total > data.groups.length && <p className="small">{data.total} known groups and ransomware families could use these weaknesses. The {data.groups.length} shown match the most specific ways in and are the most recently active.</p>}
       {data.groups.length === 0 ? <p className="muted small">None of the known groups' usual entry techniques matches what we see from outside.</p> : (
         <div className="fw-list">
           {data.groups.map((g) => (
@@ -17,7 +18,7 @@ export default function ThreatGroups({ entityId, version }) {
               <button className="fw-head plan-btn" onClick={() => setOpen(open === g.id ? null : g.id)} aria-expanded={open === g.id}>
                 <span className="small strong">{g.name}</span>
                 <span className="small muted">{g.kind === 'group' ? 'Group' : 'Ransomware'}{g.aliases.length ? ` · also ${g.aliases.slice(0, 2).join(', ')}` : ''}</span>
-                <span className="small plan-meta">{g.entry.map((h) => h.name).join(', ')}</span>
+                <span className="small plan-meta">{g.entry.filter((h) => !h.common).map((h) => h.name).join(', ')}</span>
               </button>
               {open === g.id && (
                 <div className="plan-body small">

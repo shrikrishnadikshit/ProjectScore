@@ -61,18 +61,31 @@ def evidence_techniques(findings: list[Finding]) -> dict[str, list[str]]:
     return out
 
 
+# Ways in that nearly every group uses (phishing, drive-by). On their own they say nothing about which group
+# a vendor should worry about, so a group must also match a more specific way in.
+COMMON = {"T1566", "T1189", "T1598", "T1204"}
+
+
 def match(profile: dict, evidence: dict[str, list[str]]) -> list[dict]:
-    """Techniques this group uses that the vendor has evidence for (sub-techniques match their parent)."""
+    """The group's techniques the vendor has evidence for, one row per technique family.
+
+    A group's sub-technique (T1078.004 Cloud Accounts) matches evidence for its parent (T1078 Valid Accounts),
+    but is reported once, under the parent, so a broad finding is not counted several times."""
     techs = data()["techniques"]
     have = {_parent(t): t for t in evidence}
-    hits = []
+    hits: dict[str, dict] = {}
     for t in profile["techniques"]:
-        ev = evidence.get(t) or (evidence.get(have[_parent(t)]) if _parent(t) in have else None)
-        if ev:
-            info = techs.get(t, {})
-            hits.append({"id": t, "name": info.get("name"), "url": tech_url(t), "entry": bool(set(info.get("tactics", [])) & ENTRY_TACTICS),
-                         "evidence": ev[:3]})
-    return hits
+        p = _parent(t)
+        ev = evidence.get(t) or (evidence.get(have[p]) if p in have else None)
+        if not ev or p in hits:
+            continue
+        key = t if t in evidence else have.get(p, t)
+        info = techs.get(key) or techs.get(t, {})
+        name = info.get("name") or techs.get(t, {}).get("name")
+        tactics = set(techs.get(t, {}).get("tactics", [])) | set(info.get("tactics", []))
+        hits[p] = {"id": key, "name": name, "url": tech_url(key), "entry": bool(tactics & ENTRY_TACTICS),
+                   "common": p in COMMON, "evidence": ev[:3]}
+    return list(hits.values())
 
 
 def exposure(findings: list[Finding], limit: int = 10) -> list[dict]:
@@ -83,11 +96,14 @@ def exposure(findings: list[Finding], limit: int = 10) -> list[dict]:
     for p in data()["profiles"]:
         hits = match(p, evidence)
         entry = [h for h in hits if h["entry"]]
-        if not entry:
-            continue  # only groups that could get in through something we saw
+        if not any(not h["common"] for h in entry):
+            continue  # only groups that could get in through something specific we saw
+        entry.sort(key=lambda h: h["common"])
         out.append({"id": p["id"], "name": p["name"], "kind": p["kind"], "url": p["url"], "aliases": p["aliases"][:4],
-                    "ransomware": p["ransomware"][:5], "entry": entry, "other": [h for h in hits if not h["entry"]][:8]})
-    out.sort(key=lambda g: (-len(g["entry"]), -len(g["other"]), g["kind"] != "group", g["name"].lower()))
+                    "ransomware": p["ransomware"][:5], "modified": p["modified"], "entry": entry, "other": [h for h in hits if not h["entry"]][:8]})
+    # most specific ways in first, then the groups whose ATT&CK record was updated most recently (still active)
+    out.sort(key=lambda g: g["modified"], reverse=True)
+    out.sort(key=lambda g: (-sum(not h["common"] for h in g["entry"]), -len(g["other"])))
     return out[:limit]
 
 
@@ -113,7 +129,7 @@ def list_groups(user: User = Depends(auth.current_user), session: Session = Depe
     for eid, fs in findings.items():
         for g in exposure(fs, limit=1000):
             exposed.setdefault(g["id"], []).append({"entity_id": eid, "name": names[eid],
-                                                    "via": [h["name"] for h in g["entry"]][:3]})
+                                                    "via": [h["name"] for h in g["entry"] if not h["common"]][:3]})
     d = data()
     profiles = [{**_summary(p), "vendors": exposed.get(p["id"], [])} for p in d["profiles"]]
     profiles.sort(key=lambda p: (-len(p["vendors"]), p["kind"] != "group", p["name"].lower()))
@@ -138,4 +154,5 @@ def entity_groups(entity_id: int, user: User = Depends(auth.current_user), sessi
 
     _portfolio_item(session, user, entity_id)
     fs = session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open")).all()
-    return {"groups": exposure(fs), "notice": data()["notice"], "version": data()["version"]}
+    every = exposure(fs, limit=1000)
+    return {"groups": every[:10], "total": len(every), "notice": data()["notice"], "version": data()["version"]}
