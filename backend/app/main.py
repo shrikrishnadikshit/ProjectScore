@@ -33,6 +33,7 @@ from . import account, ai, assets, brandprotect, darkweb, standards, attackpaths
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
+from . import reputation
 
 DOMAIN_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 # Minimum time between scans of the same entity, to keep scanning polite (BRS 4.4).
@@ -60,9 +61,11 @@ async def lifespan(_: FastAPI):
     finally:
         session.close()
     scheduler.start()
+    reputation.start()
     update_templates_async()
     yield
     scheduler.stop()
+    reputation.stop()
 
 
 app = FastAPI(title="ProjectScore API", version="0.2.0", lifespan=lifespan)
@@ -365,7 +368,10 @@ def entity_report(entity_id: int, user: User = Depends(auth.current_user),
 
     data = get_entity(entity_id, user, session)
     history = score_history(entity_id, user, session)
-    pdf = build_pdf(data, history, user.org.name)
+    from .report_extras import gather
+
+    extras = gather(session, session.get(Entity, entity_id), history)
+    pdf = build_pdf(data, history, user.org.name, extras=extras)
     slug = re.sub(r"[^a-z0-9]+", "-", data["primary_domain"].lower()).strip("-")
     return RawResponse(pdf, media_type="application/pdf",
                        headers={"Content-Disposition": f'attachment; filename="projectscore-{slug}.pdf"'})
@@ -430,6 +436,7 @@ app.include_router(ai.router)
 app.include_router(darkweb.router)
 app.include_router(brandprotect.router)
 app.include_router(standards.router)
+app.include_router(reputation.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

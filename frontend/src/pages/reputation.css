@@ -1,0 +1,62 @@
+/* Reputation module. Colours come from the shared tokens in styles.css, so light and dark both work. */
+.rep-score { display: grid; place-items: center; border-radius: 50%; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--surface); background: var(--grade-none); flex: none; }
+.rep-score-large { width: 64px; height: 64px; font-size: 24px; }
+.rep-score-medium { width: 48px; height: 48px; font-size: 18px; }
+.rep-score-good { background: var(--grade-a); }
+.rep-score-fair { background: var(--grade-c); }
+.rep-score-poor { background: var(--grade-f); }
+.rep-head { display: flex; gap: 16px; align-items: center; }
+.rep-head h1 { margin: 0; }
+
+.rep-brand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.rep-brand-card { display: flex; gap: 14px; align-items: flex-start; color: inherit; text-decoration: none; }
+.rep-brand-card:hover { border-color: var(--primary); }
+.rep-brand-main { flex: 1; min-width: 0; }
+.rep-mini-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 8px; background: var(--surface-2); }
+.rep-open { color: var(--grade-f); margin-top: 6px; }
+.rep-footnote { margin-top: 20px; }
+
+.rep-bar-positive { fill: var(--grade-a); background: var(--grade-a); }
+.rep-bar-neutral { fill: var(--info); background: var(--info); }
+.rep-bar-negative { fill: var(--grade-f); background: var(--grade-f); }
+.rep-trend { width: 100%; height: auto; display: block; }
+.rep-legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.rep-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; }
+
+.rep-pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.rep-pill-positive { color: var(--grade-a); }
+.rep-pill-neutral { color: var(--muted); }
+.rep-pill-negative { color: var(--grade-f); }
+.rep-stars { color: var(--grade-c); letter-spacing: 1px; font-size: 13px; }
+
+.rep-mentions { border-top: 1px solid var(--border); }
+.rep-mention { padding: 14px 20px; border-bottom: 1px solid var(--border); border-left: 3px solid transparent; }
+.card > .rep-mention { padding-left: 12px; padding-right: 0; }
+.rep-mention-negative { border-left-color: var(--grade-f); }
+.rep-mention.rep-done { opacity: .72; }
+.rep-mention-head { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rep-when { margin-left: auto; }
+.rep-title { margin-top: 6px; }
+.rep-text { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rep-mention-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.rep-mention-actions select { padding: 4px 8px; font-size: 13px; }
+.rep-reply { margin-top: 10px; display: grid; gap: 8px; }
+.rep-reply textarea { width: 100%; box-sizing: border-box; }
+.rep-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.rep-form fieldset.rep-sources { border: 1px solid var(--border); border-radius: 8px; display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; margin: 0; }
+.rep-form fieldset legend { padding: 0 4px; font-size: 14px; }
+.rep-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.rep-two .banner { grid-column: 1 / -1; }
+.rep-two textarea { width: 100%; box-sizing: border-box; }
+.rep-owned { margin-left: 6px; }
+.rep-new { color: var(--primary); font-weight: 700; }
+.btn.danger { color: var(--grade-f); border-color: var(--grade-f); }
+
+@media (max-width: 760px) {
+  .rep-two { grid-template-columns: 1fr; }
+  .rep-mention { padding: 12px 14px; }
+  .rep-when { margin-left: 0; }
+}
