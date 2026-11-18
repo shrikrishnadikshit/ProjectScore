@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/PublicFooter.jsx'
 
@@ -30,7 +31,11 @@ const PRINCIPLES = [
   ['Confidentiality', 'Results of in-depth scans, code reviews, questionnaires and certificates stay private to the customer that ran them.'],
 ]
 
+const STATUS = { applied: 'Followed', mapped: 'Findings tagged', referenced: 'Referenced only' }
+
 export default function Methodology() {
+  const [std, setStd] = useState(null)
+  useEffect(() => { fetch('/api/standards').then((r) => r.ok ? r.json() : null).then(setStd).catch(() => {}) }, [])
   return (
     <div className="public">
       <Link to="/" className="brand">ProjectScore</Link>
@@ -57,6 +62,19 @@ export default function Methodology() {
           <li>Two hard limits: active compromise caps the rating at 640, and an actively exploited critical vulnerability caps it at 700.</li>
           <li>Factors we could not assess are left out rather than counted as perfect, and the rating shows its coverage.</li>
         </ul>
+      </section>
+
+      <section className="card">
+        <h2>Testing standards we follow</h2>
+        <p className="small muted">How our testing lines up with recognised global methodologies. Every finding shows its CWE, OWASP Top 10 and OWASP testing guide (WSTG) IDs alongside MITRE ATT&CK, and an evidence record with its source, collection time and a SHA-256 fingerprint.</p>
+        {std ? std.catalogue.map((a) => (
+          <div key={a.area} style={{ marginTop: 12 }}>
+            <h3>{a.area}</h3>
+            <table>
+              <tbody>{a.standards.map((s) => <tr key={s.name} className="static"><td className="strong small" style={{ width: '32%' }}>{s.name}</td><td className="small" style={{ width: '16%' }}>{STATUS[s.status]}</td><td className="small muted">{s.how}</td></tr>)}</tbody>
+            </table>
+          </div>
+        )) : <p className="muted small">Loading…</p>}
       </section>
 
       <section className="card">

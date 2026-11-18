@@ -42,6 +42,7 @@ function ReviewResults({ id }) {
         <section className="card table-card">
           <div className="section-head">
             <h2>Findings ({review.summary.total})</h2>
+            <a className="btn small" href={`/api/code-reviews/${review.id}/sarif`} download title="SARIF 2.1.0, for GitHub code scanning, Azure DevOps and other tools">Download SARIF</a>
             <div className="chips">{counts.map(([s, n]) => <span key={s} className={`sev sev-${s}`}>{n} {s}</span>)}</div>
           </div>
           <div className="chips" style={{ padding: '0 20px 12px' }}>
@@ -61,7 +62,7 @@ function ReviewResults({ id }) {
                       <td><span className={`sev sev-${r.severity}`}>{r.severity}</span><div className="muted small">{r.tool}</div></td>
                       <td>
                         <div className="strong">{r.title}</div>
-                        {r.cves?.length > 0 && <div className="mono small">{r.cves.join(', ')}</div>}
+                        {(r.cves?.length > 0 || r.cwe?.length > 0) && <div className="mono small">{[...(r.cves || []), ...(r.cwe || [])].join(', ')}</div>}
                         {r.detail && <div className="muted small">{r.detail}</div>}
                         {r.fix && <div className="small"><b>Fix:</b> {r.fix}</div>}
                       </td>

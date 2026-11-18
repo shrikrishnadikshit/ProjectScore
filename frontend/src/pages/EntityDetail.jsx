@@ -183,7 +183,13 @@ export default function EntityDetail() {
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
                       <td><span className={`prio prio-${f.priority}`} title={f.asset_value ? `${f.asset_value}-value system` : 'system importance not yet known'}>P{f.priority}</span></td>
-                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} />{f.attack?.length > 0 && <div className="chips" style={{ marginTop: 4 }}>{f.attack.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}</div>}</td>
+                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} />{(f.attack?.length > 0 || f.standards?.cwe?.length > 0 || f.standards?.owasp) && <div className="chips" style={{ marginTop: 4 }}>
+                        {f.attack?.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}
+                        {f.standards?.cwe.map((c) => <a key={c.id} className="chip small" href={c.url} target="_blank" rel="noreferrer" title={c.name}>{c.id}</a>)}
+                        {f.standards?.owasp && <a className="chip small" href={f.standards.owasp.url} target="_blank" rel="noreferrer" title="OWASP Top 10">{f.standards.owasp.name}</a>}
+                        {f.standards?.wstg.map((w) => <a key={w.id} className="chip small" href={w.url} target="_blank" rel="noreferrer" title={`OWASP testing guide: ${w.name}`}>{w.id}</a>)}
+                      </div>}
+                      {f.provenance && <div className="muted small" title={`SHA-256 ${f.provenance.sha256}`}>Evidence: {f.provenance.source} · {f.provenance.method} · first seen {new Date(f.provenance.first_collected).toLocaleDateString()} · fingerprint {f.provenance.sha256.slice(0, 12)}</div>}</td>
                       <td className="muted small">{FACTOR_LABELS[f.risk_factor] ?? f.risk_factor}</td>
                       <td className="mono small">{f.asset}</td>
                       <td className="muted small">{new Date(f.first_seen).toLocaleDateString()}</td>
