@@ -367,7 +367,10 @@ def entity_report(entity_id: int, user: User = Depends(auth.current_user),
 
     data = get_entity(entity_id, user, session)
     history = score_history(entity_id, user, session)
-    pdf = build_pdf(data, history, user.org.name)
+    from .report_extras import gather
+
+    extras = gather(session, session.get(Entity, entity_id), history)
+    pdf = build_pdf(data, history, user.org.name, extras=extras)
     slug = re.sub(r"[^a-z0-9]+", "-", data["primary_domain"].lower()).strip("-")
     return RawResponse(pdf, media_type="application/pdf",
                        headers={"Content-Disposition": f'attachment; filename="projectscore-{slug}.pdf"'})
