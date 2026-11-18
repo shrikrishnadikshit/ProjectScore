@@ -349,3 +349,10 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .qa-draft .btn { padding: 2px 10px; font-size: 12px; }
 .chip-danger { background: color-mix(in srgb, var(--grade-f) 15%, transparent); color: var(--grade-f); }
 .chip-warn { background: color-mix(in srgb, var(--grade-d) 15%, transparent); color: var(--grade-d); }
+
+.download-menu { position: relative; }
+.download-menu > summary { list-style: none; cursor: pointer; }
+.download-menu > summary::-webkit-details-marker { display: none; }
+.download-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 260px; padding: 6px; display: flex; flex-direction: column; margin: 0; }
+.download-list a { padding: 8px 10px; border-radius: 6px; text-decoration: none; color: inherit; font-size: 14px; }
+.download-list a:hover { background: var(--hover, rgba(127,127,127,.12)); }

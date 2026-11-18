@@ -55,6 +55,18 @@ export default function Portfolio() {
         <div className="row-actions">
           {isAdmin && !importing && <button className="btn ghost" onClick={() => setImporting(true)}>Import CSV</button>}
           <Link className="btn ghost" to="/supply-chain">Supply chain</Link>
+          {entities?.length > 0 && (
+            <details className="download-menu">
+              <summary className="btn ghost">Download</summary>
+              <div className="download-list card">
+                <a href="/api/reports/board.pptx">Board report (PowerPoint)</a>
+                <a href="/api/reports/board.docx">Board report (Word)</a>
+                <a href="/api/exports/portfolio.xlsx">Portfolio and findings (Excel)</a>
+                <a href="/api/exports/portfolio.csv">Portfolio (CSV)</a>
+                <a href="/api/exports/findings.csv">Open findings (CSV)</a>
+              </div>
+            </details>
+          )}
           {!adding && <button className="btn primary" onClick={() => setAdding(true)}>Add company</button>}
         </div>
       </div>
