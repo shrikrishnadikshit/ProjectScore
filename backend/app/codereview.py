@@ -119,7 +119,7 @@ def _rel(path: str, root: Path) -> str:
 def parse_gitleaks(data: list, root: Path) -> list[dict]:
     out = []
     for leak in data or []:
-        out.append({"tool": "Gitleaks", "rule": leak.get("RuleID", "secret"), "severity": "high",
+        out.append({"tool": "Gitleaks", "rule": leak.get("RuleID", "secret"), "severity": "high", "cwe": ["CWE-798"],
                     "title": f"Possible hard-coded secret: {leak.get('Description') or leak.get('RuleID')}",
                     "file": _rel(leak.get("File", ""), root), "line": leak.get("StartLine"),
                     "detail": "Secret value redacted.",
@@ -172,7 +172,7 @@ def parse_osv(data: dict, root: Path) -> list[dict]:
                 out.append({"tool": "OSV-Scanner", "rule": ids[0] if ids else "vulnerability",
                             "severity": _cvss_severity(group.get("max_severity")),
                             "title": f"{name} {version}: {primary.get('summary') or 'known vulnerability'}"[:300],
-                            "file": source, "line": None, "cves": cves[:10],
+                            "file": source, "line": None, "cves": cves[:10], "cwe": ["CWE-1395"],
                             "detail": f"{p.get('ecosystem', '')} package; advisories: {', '.join(aliases[:6])}",
                             "fix": (f"Upgrade {name} to {fix_to} or later." if fix_to
                                     else f"No fixed version published yet; consider replacing {name} or reducing its exposure.")})
@@ -187,6 +187,7 @@ def parse_bandit(data: dict, root: Path) -> list[dict]:
             continue  # low severity and low confidence: mostly noise
         cwe = (r.get("issue_cwe") or {}).get("id")
         out.append({"tool": "Bandit", "rule": f"{r.get('test_id')} {r.get('test_name')}", "severity": sev,
+                    "cwe": [f"CWE-{cwe}"] if cwe else [],
                     "title": r.get("issue_text", "")[:300], "file": _rel(r.get("filename", ""), root),
                     "line": r.get("line_number"), "detail": f"Confidence: {(r.get('issue_confidence') or '').lower()}"
                     + (f"; CWE-{cwe}" if cwe else ""),
@@ -375,6 +376,71 @@ def list_reviews(user: User = Depends(auth.current_user), session: Session = Dep
     rows = session.scalars(select(CodeReview).where(CodeReview.org_id == user.org_id)
                            .order_by(CodeReview.created_at.desc()).limit(100)).all()
     return [_out(r) for r in rows]
+
+
+# SEI CERT rules for hard-coded secrets, per language family (CERT publishes C, C++, Java, Perl and Android rules).
+CERT_SECRETS = {".c": "MSC41-C", ".h": "MSC41-C", ".cpp": "MSC41-C", ".cc": "MSC41-C", ".hpp": "MSC41-C",
+                ".java": "MSC03-J", ".kt": "MSC03-J"}
+SARIF_LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note", "info": "note"}
+TOOL_URI = {"Gitleaks": "https://github.com/gitleaks/gitleaks", "OSV-Scanner": "https://github.com/google/osv-scanner",
+            "Bandit": "https://github.com/PyCQA/bandit"}
+
+
+def _cwes(r: dict) -> list[str]:
+    if r.get("cwe"):
+        return list(r["cwe"])
+    m = re.search(r"CWE-(\d+)", r.get("detail") or "")  # older Bandit results kept the CWE in the text
+    return [f"CWE-{m.group(1)}"] if m else (["CWE-798"] if r.get("tool") == "Gitleaks" else
+                                             ["CWE-1395"] if r.get("tool") == "OSV-Scanner" else [])
+
+
+def _cert(r: dict) -> list[str]:
+    if r.get("tool") != "Gitleaks":
+        return []
+    ext = Path(r.get("file") or "").suffix.lower()
+    return [CERT_SECRETS[ext]] if ext in CERT_SECRETS else []
+
+
+def to_sarif(review: CodeReview) -> dict:
+    """OASIS SARIF 2.1.0: one run per tool, with CWE (and SEI CERT, where it applies) as rule tags."""
+    runs = []
+    results = review.results or []
+    for tool in sorted({r.get("tool", "unknown") for r in results}) or ["ProjectScore"]:
+        rules: dict[str, dict] = {}
+        out = []
+        for r in (x for x in results if x.get("tool") == tool):
+            rule_id = str(r.get("rule") or "finding").split(" ")[0]
+            cwes, cert = _cwes(r), _cert(r)
+            rules.setdefault(rule_id, {"id": rule_id, "name": str(r.get("rule") or rule_id),
+                                       "shortDescription": {"text": (r.get("title") or rule_id)[:200]},
+                                       "help": {"text": r.get("fix") or ""},
+                                       "properties": {"tags": ["security"] + cwes + [f"SEI-CERT:{c}" for c in cert]}})
+            loc = {"physicalLocation": {"artifactLocation": {"uri": r.get("file") or "."}}}
+            if r.get("line"):
+                loc["physicalLocation"]["region"] = {"startLine": int(r["line"])}
+            out.append({"ruleId": rule_id, "level": SARIF_LEVEL.get(r.get("severity"), "warning"),
+                        "message": {"text": " ".join(x for x in (r.get("title"), r.get("detail")) if x)[:1000]},
+                        "locations": [loc],
+                        "properties": {"severity": r.get("severity"), "cwe": cwes, "sei_cert": cert,
+                                       "cves": r.get("cves", []), "fix": r.get("fix")}})
+        runs.append({"tool": {"driver": {"name": tool, "informationUri": TOOL_URI.get(tool, "https://projectscore.onrender.com"),
+                                         "rules": list(rules.values())}},
+                     "results": out,
+                     "properties": {"reviewName": review.name, "source": review.source,
+                                    "completedAt": review.finished_at.isoformat() if review.finished_at else None}})
+    return {"$schema": "https://json.schemastore.org/sarif-2.1.0.json", "version": "2.1.0", "runs": runs}
+
+
+@router.get("/code-reviews/{review_id}/sarif")
+def review_sarif(review_id: int, user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)):
+    r = session.get(CodeReview, review_id)
+    if r is None or r.org_id != user.org_id:
+        raise HTTPException(404, "review not found")
+    from fastapi.responses import JSONResponse
+
+    name = re.sub(r"[^A-Za-z0-9_.-]+", "-", r.name or f"review-{r.id}")[:60]
+    return JSONResponse(to_sarif(r), media_type="application/sarif+json",
+                        headers={"Content-Disposition": f'attachment; filename="{name}.sarif"'})
 
 
 @router.get("/code-reviews/{review_id}")

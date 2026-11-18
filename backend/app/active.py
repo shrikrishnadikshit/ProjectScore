@@ -153,7 +153,27 @@ def _scan_out(s: ActiveScan, with_results: bool = False) -> dict:
     if with_results:
         out["results"] = s.results or []
         out["authorisation_text"] = s.authorisation_text
+        out["phases"] = phases(s)
     return out
+
+
+def phases(s: ActiveScan) -> list[dict]:
+    """The scan's progress through the PTES and NIST SP 800-115 phases."""
+    done = s.status == "done"
+    return [
+        {"ptes": "Pre-engagement", "nist": "Planning", "state": "done",
+         "detail": f"Domain ownership verified in DNS; written authorisation by {s.authoriser_name or 'the owner'}."},
+        {"ptes": "Intelligence gathering", "nist": "Discovery", "state": "done" if s.targets else "pending",
+         "detail": f"{len(s.targets or [])} hosts in scope, found passively."},
+        {"ptes": "Threat modelling", "nist": "Discovery", "state": "done",
+         "detail": "Attack paths from the company's passive findings (see the attacker's view)."},
+        {"ptes": "Vulnerability analysis", "nist": "Attack (non-intrusive checks only)", "state": "done" if done else s.status,
+         "detail": f"Nuclei templates, excluding {EXCLUDED_TAGS} templates; rate-limited."},
+        {"ptes": "Exploitation and post-exploitation", "nist": "Attack (exploitation)", "state": "not performed",
+         "detail": "Out of scope: needs a separate engagement with human testers."},
+        {"ptes": "Reporting", "nist": "Reporting", "state": "done" if done else "pending",
+         "detail": f"{len(s.results or [])} findings, each with CWE and CVE references where the template provides them."},
+    ]
 
 
 @router.get("/active-scans/config")
@@ -244,6 +264,7 @@ def parse_results(lines) -> list[dict]:
             "description": (info.get("description") or "").strip()[:1000],
             "matched_at": d.get("matched-at") or d.get("host"),
             "cves": [c.upper() for c in (cls.get("cve-id") or [])],
+            "cwe": sorted({c.upper() for c in (cls.get("cwe-id") or []) if isinstance(c, str) and c.upper().startswith("CWE-")}),
             "references": (info.get("reference") or [])[:5] if isinstance(info.get("reference"), list) else [],
             "remediation": (info.get("remediation") or "").strip()[:1000],
         })

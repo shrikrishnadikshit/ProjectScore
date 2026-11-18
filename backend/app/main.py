@@ -29,7 +29,7 @@ from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
 from .attack import techniques as attack_techniques
-from . import account, ai, assets, brandprotect, darkweb, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
+from . import account, ai, assets, brandprotect, darkweb, standards, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -325,7 +325,8 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
         {"id": f.id, "risk_factor": f.risk_factor, "code": f.code, "title": f.title, "severity": f.severity,
          "asset": f.asset_value, "status": f.status, "evidence": f.evidence,
          "first_seen": f.first_seen.isoformat(), "last_seen": f.last_seen.isoformat(),
-         "attack": attack_techniques(f.code), "asset_value": asset_values.get(f.asset_value),
+         "attack": attack_techniques(f.code), "standards": standards.tags(f.code), "provenance": standards.provenance(f),
+         "asset_value": asset_values.get(f.asset_value),
          "priority": (assets.priority(f.severity, asset_values.get(f.asset_value)) if f.severity != "info" else 4)}
         for f in session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open"))
     ]
@@ -428,6 +429,7 @@ app.include_router(attackpaths.router)
 app.include_router(ai.router)
 app.include_router(darkweb.router)
 app.include_router(brandprotect.router)
+app.include_router(standards.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

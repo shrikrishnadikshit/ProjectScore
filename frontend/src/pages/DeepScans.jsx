@@ -35,6 +35,16 @@ function ScanResults({ id }) {
         <div className="asset-list">{scan.targets.map((t) => <span key={t} className="mono small asset">{t}</span>)}</div>
         <p className="muted small" style={{ marginTop: 12 }}>These results come from active testing you authorised. They are private to your organisation and do not change the public security rating.</p>
       </section>
+      {scan.phases && (
+        <section className="card">
+          <h2>Test phases</h2>
+          <p className="muted small">Structured by the Penetration Testing Execution Standard (PTES) and NIST SP 800-115.</p>
+          <table>
+            <thead><tr><th>PTES phase</th><th>NIST SP 800-115</th><th>Status</th><th>What happened</th></tr></thead>
+            <tbody>{scan.phases.map((p) => <tr key={p.ptes} className="static"><td className="strong">{p.ptes}</td><td className="small">{p.nist}</td><td className="small">{p.state}</td><td className="small muted">{p.detail}</td></tr>)}</tbody>
+          </table>
+        </section>
+      )}
       {scan.status === 'done' && (
         <section className="card table-card">
           <div className="section-head">
@@ -51,7 +61,7 @@ function ScanResults({ id }) {
                       <td><span className={`sev sev-${r.severity}`}>{r.severity}</span></td>
                       <td>
                         <div className="strong">{r.name}</div>
-                        {r.cves.length > 0 && <div className="mono small">{r.cves.join(', ')}</div>}
+                        {(r.cves.length > 0 || r.cwe?.length > 0) && <div className="mono small">{[...r.cves, ...(r.cwe || [])].join(', ')}</div>}
                         {r.description && <div className="muted small">{r.description}</div>}
                         {r.remediation && <div className="small"><b>Fix:</b> {r.remediation}</div>}
                       </td>
