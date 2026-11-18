@@ -668,3 +668,32 @@ class VendorProfile(Base):
     contract_end: Mapped[date | None] = mapped_column(Date)
     offboarding: Mapped[dict] = mapped_column(JSON, default=dict)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class PrivacyRequest(Base):
+    """A data-protection rights request from anyone (access, correction, deletion, objection), BRS PRIV-002."""
+
+    __tablename__ = "privacy_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    kind: Mapped[str] = mapped_column(String(20))            # access, correct, delete, object, other
+    email: Mapped[str] = mapped_column(String(320))
+    name: Mapped[str | None] = mapped_column(String(255))
+    details: Mapped[str | None] = mapped_column(String(4000))
+    status: Mapped[str] = mapped_column(String(20), default="new")  # new, in_progress, done, rejected
+    due: Mapped[date] = mapped_column(Date)
+    note: Mapped[str | None] = mapped_column(String(2000))
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Suppression(Base):
+    """An email address we must never write to or store again. Only a hash of the address is kept."""
+
+    __tablename__ = "suppressions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    reason: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

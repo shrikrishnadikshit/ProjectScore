@@ -49,7 +49,7 @@ export default function Scanner() {
         <h2>What it never does</h2>
         <ul>
           <li>No login attempts, exploitation, vulnerability probing or port sweeps.</li>
-          <li>No high-volume traffic: each host gets a handful of requests at most once a week.</li>
+          <li>No high-volume traffic: each host gets a handful of requests at most once a day.</li>
           <li>No collection of personal data from your systems.</li>
         </ul>
         <p className="muted small">Requests identify themselves with the user agent <span className="mono">ProjectScore-Scanner/1.0 (+{window.location.origin}/scanner; passive security rating)</span>.</p>

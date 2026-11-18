@@ -85,6 +85,11 @@ def notify(session: Session, entity: Entity, previous: Score | None, current: Sc
 
 
 def send_email(to: list[str], entity_id: int, evs: list[dict]) -> bool:
+    from .privacy import allowed_recipients
+
+    to = allowed_recipients(to)
+    if not to:
+        return False
     base = os.environ.get("APP_URL", "https://projectscore.onrender.com").rstrip("/")
     subject = evs[0]["title"] if len(evs) == 1 else f"{evs[0]['title'].split(':')[0]}: {len(evs)} rating alerts"
     body = "\n\n".join(e["title"] + ("\n" + e["detail"] if e["detail"] else "") for e in evs)

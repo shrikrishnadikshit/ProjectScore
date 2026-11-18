@@ -118,6 +118,9 @@ def _loop() -> None:
                 from .vendorprofile import contract_reminders
 
                 contract_reminders(session)
+                from .privacy import apply_retention
+
+                apply_retention(session)
             finally:
                 session.close()
         except Exception:

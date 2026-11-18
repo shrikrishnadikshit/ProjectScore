@@ -31,6 +31,11 @@ export const api = {
   changePassword: (current_password, new_password) =>
     request('/auth/password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   listUsers: () => request('/users'),
+  privacyFacts: () => request('/public/privacy'),
+  submitPrivacyRequest: (data) => request('/public/privacy-request', { method: 'POST', body: JSON.stringify(data) }),
+  listPrivacyRequests: () => request('/privacy-requests'),
+  lookupPrivacyRequest: (id) => request(`/privacy-requests/${id}/lookup`),
+  decidePrivacyRequest: (id, data) => request(`/privacy-requests/${id}`, { method: 'POST', body: JSON.stringify(data) }),
   requestOptOut: (data) => request('/public/opt-out', { method: 'POST', body: JSON.stringify(data) }),
   listOptOuts: () => request('/opt-outs'),
   listVerifications: () => request('/verifications'),

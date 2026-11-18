@@ -61,6 +61,7 @@ export default function Layout() {
           {user.role === 'owner' && <NavLink to="/disputes">Disputes</NavLink>}
           {user.role === 'owner' && <NavLink to="/leads">Leads</NavLink>}
           {user.role === 'owner' && <NavLink to="/opt-outs">Opt-outs</NavLink>}
+          {user.role === 'owner' && <NavLink to="/privacy-requests">Privacy</NavLink>}
         </nav>
         <div className="account">
           <NavLink to="/account" className="muted small account-org" title={user.email}>{user.organization}</NavLink>

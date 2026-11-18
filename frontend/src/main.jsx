@@ -8,6 +8,8 @@ import Team from './pages/Team.jsx'
 import Account from './pages/Account.jsx'
 import Scanner from './pages/Scanner.jsx'
 import OptOuts from './pages/OptOuts.jsx'
+import PrivacyRequest from './pages/PrivacyRequest.jsx'
+import PrivacyRequests from './pages/PrivacyRequests.jsx'
 import DeepScans from './pages/DeepScans.jsx'
 import Disputes from './pages/Disputes.jsx'
 import FreeReport from './pages/FreeReport.jsx'
@@ -43,12 +45,14 @@ createRoot(document.getElementById('root')).render(
         <Route path="/terms" element={<Legal />} />
         <Route path="/privacy" element={<Legal />} />
         <Route path="/dpa" element={<Legal />} />
+        <Route path="/privacy-request" element={<PrivacyRequest />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Portfolio />} />
           <Route path="/entities/:id" element={<EntityDetail />} />
           <Route path="/team" element={<Team />} />
           <Route path="/account" element={<Account />} />
           <Route path="/opt-outs" element={<OptOuts />} />
+          <Route path="/privacy-requests" element={<PrivacyRequests />} />
           <Route path="/disputes" element={<Disputes />} />
           <Route path="/leads" element={<Leads />} />
           <Route path="/alerts" element={<Alerts />} />

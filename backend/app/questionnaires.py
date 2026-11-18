@@ -138,6 +138,10 @@ class SendIn(BaseModel):
 def _email_link(q: Questionnaire, entity_name: str, org_name: str, count: int | None = None) -> None:
     if not (os.environ.get("RESEND_API_KEY") and os.environ.get("ALERT_EMAIL_FROM")):
         return
+    from .privacy import allowed_recipients
+
+    if not allowed_recipients([q.recipient_email]):
+        return
     import httpx
 
     base = os.environ.get("APP_URL", "https://projectscore.onrender.com").rstrip("/")

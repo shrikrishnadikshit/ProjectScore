@@ -83,6 +83,10 @@ def request_report(body: FreeReportIn, request: Request, tasks: BackgroundTasks,
         raise HTTPException(422, f"please use your work email at {body.domain}; the free report is for your own organisation")
     if is_opted_out(session, body.domain):
         raise HTTPException(409, "this domain has opted out of scanning")
+    from .privacy import suppressed
+
+    if suppressed(session, body.contact_email):
+        raise HTTPException(409, "this email address asked us not to store or use it; please use another address")
     client = request.headers.get("x-forwarded-for", request.client.host if request.client else "?").split(",")[0]
     if not limiter.allow(client.strip()):
         raise HTTPException(429, "you have requested several reports today; please try again tomorrow")
