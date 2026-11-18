@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 
@@ -20,7 +21,7 @@ export default function ApiKeys() {
   return (
     <section className="card">
       <h2>API keys</h2>
-      <p className="muted small">Read-only keys let your own systems (for example a SIEM, GRC tool or spreadsheet) fetch your portfolio, scores and findings. Send the key as <span className="mono">Authorization: Bearer ps_…</span>. Keys can read but never change anything.</p>
+      <p className="muted small">Read-only keys let your own systems (for example a SIEM, GRC tool or spreadsheet) fetch your portfolio, scores and findings. Send the key as <span className="mono">Authorization: Bearer ps_…</span>. Keys can read but never change anything. Every endpoint is listed in the <Link to="/api-docs">API docs</Link>.</p>
       {created && (
         <div className="banner">
           <div className="strong small">Copy this key now. It will not be shown again.</div>

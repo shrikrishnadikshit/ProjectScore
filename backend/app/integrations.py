@@ -79,6 +79,9 @@ def _dispatch(alert_ids: list[int]) -> None:
             emoji = SEV_EMOJI.get(a.severity, "")
             notify_org(session, a.org_id, f"{emoji} {a.title}".strip(), a.detail or "",
                        link=f"/entities/{a.entity_id}" if a.entity_id else "/alerts")
+        from .webhooks import dispatch as webhook_dispatch
+
+        webhook_dispatch(session, session.scalars(select(Alert).where(Alert.id.in_(alert_ids))).all())
     except Exception:
         logger.exception("alert dispatch failed")
     finally:
@@ -137,7 +140,10 @@ def _out(row: OrgIntegration | None, kind: str) -> dict:
 
 @router.get("/integrations")
 def list_integrations(user: User = Depends(auth.current_user), session: Session = Depends(db.get_session)) -> dict:
-    return {k: _out(_get(session, user.org_id, k), k) for k in ("slack", "jira")}
+    from .webhooks import out as webhook_out
+
+    return {**{k: _out(_get(session, user.org_id, k), k) for k in ("slack", "jira")},
+            "webhook": webhook_out(_get(session, user.org_id, "webhook"))}
 
 
 class SlackIn(BaseModel):

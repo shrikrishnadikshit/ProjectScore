@@ -356,3 +356,4 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .download-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; min-width: 260px; padding: 6px; display: flex; flex-direction: column; margin: 0; }
 .download-list a { padding: 8px 10px; border-radius: 6px; text-decoration: none; color: inherit; font-size: 14px; }
 .download-list a:hover { background: var(--hover, rgba(127,127,127,.12)); }
+.code-block { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre; margin: 8px 0; }

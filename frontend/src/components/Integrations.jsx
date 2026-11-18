@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../api.js'
 
 export default function Integrations({ isAdmin }) {
   const [data, setData] = useState(null)
   const [slack, setSlack] = useState('')
   const [jira, setJira] = useState({ site: '', email: '', project: '', issue_type: 'Task', api_token: '' })
+  const [hook, setHook] = useState('')
+  const [signing, setSigning] = useState(null)
   const [msg, setMsg] = useState(null)
   const [error, setError] = useState(null)
   const load = () => api.listIntegrations().then((d) => {
     setData(d)
     if (d.jira.config) setJira({ ...d.jira.config, api_token: '' })
+    if (d.webhook?.config?.url) setHook(d.webhook.config.url)
   }).catch((e) => setError(e.message))
   useEffect(() => { load() }, [])
   if (!data) return error ? <div className="card error">{error}</div> : null
@@ -65,6 +69,31 @@ export default function Integrations({ isAdmin }) {
           <div className="actions" style={{ justifyContent: 'flex-start' }}>
             <button className="btn primary">Save</button>
             {data.jira.connected && <button type="button" className="btn ghost" onClick={run(() => api.removeIntegration('jira'), 'Jira disconnected.')}>Disconnect</button>}
+          </div>
+        </form>
+      )}
+      <h3 style={{ marginTop: 20 }}>Webhook</h3>
+      <p className="small">{data.webhook && status(data.webhook)}. Every new alert is sent to your address as JSON, signed so you can check it came from us. See <Link to="/api-docs">API docs</Link> for the format and how to check the signature.</p>
+      {signing && (
+        <div className="banner">
+          <div className="strong small">Copy this signing secret now. It will not be shown again.</div>
+          <div className="mono small key-box">{signing}</div>
+        </div>
+      )}
+      {isAdmin && (
+        <form className="form" style={{ maxWidth: 'none' }} onSubmit={async (e) => {
+          e.preventDefault(); setError(null); setMsg(null)
+          try { const r = await api.setWebhook({ url: hook }); setSigning(r.signing_secret); setMsg('Webhook saved.'); load() } catch (err) { setError(err.message) }
+        }}>
+          <label>Your HTTPS address<input type="url" required value={hook} onChange={(e) => setHook(e.target.value)} placeholder="https://example.com/hooks/projectscore" /></label>
+          <div className="actions" style={{ justifyContent: 'flex-start' }}>
+            <button className="btn primary">Save</button>
+            {data.webhook?.connected && <button type="button" className="btn ghost" onClick={run(() => api.testWebhook(), 'Test event sent.')}>Send a test event</button>}
+            {data.webhook?.connected && <button type="button" className="btn ghost" onClick={async () => {
+              setError(null)
+              try { const r = await api.setWebhook({ url: hook, new_secret: true }); setSigning(r.signing_secret); setMsg('New signing secret made. Update your receiver.') } catch (err) { setError(err.message) }
+            }}>New signing secret</button>}
+            {data.webhook?.connected && <button type="button" className="btn ghost" onClick={run(() => { setSigning(null); return api.removeIntegration('webhook') }, 'Webhook removed.')}>Remove</button>}
           </div>
         </form>
       )}
