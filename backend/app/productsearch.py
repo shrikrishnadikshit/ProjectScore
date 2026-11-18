@@ -85,6 +85,8 @@ def search(session: Session, org_id: int, query: str, kev: dict[str, str] | None
                 names.append(kev[c])
             for n in names:
                 if _hit(q, n):
+                    words = n.split()
+                    n = " ".join(w for i, w in enumerate(words) if i == 0 or w.lower() != words[i - 1].lower())
                     add(eid, "Product named in a CVE on their systems", f"{n} ({c})")
                     break
 
