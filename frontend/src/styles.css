@@ -357,3 +357,4 @@ tbody tr:not(.static):hover { background: var(--surface-2); }
 .download-list a { padding: 8px 10px; border-radius: 6px; text-decoration: none; color: inherit; font-size: 14px; }
 .download-list a:hover { background: var(--hover, rgba(127,127,127,.12)); }
 .code-block { background: var(--surface-2); padding: 12px; border-radius: 8px; overflow-x: auto; white-space: pre; margin: 8px 0; }
+.link-button { background: none; border: 0; padding: 0; color: var(--accent, inherit); text-decoration: underline; cursor: pointer; font: inherit; }

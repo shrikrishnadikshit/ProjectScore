@@ -173,6 +173,8 @@ export const api = {
   setProfile: (id, details) => request(`/entities/${id}/profile`, { method: 'PUT', body: JSON.stringify({ details }) }),
   startOffboarding: (id) => request(`/entities/${id}/offboarding`, { method: 'POST' }),
   tickOffboarding: (id, key, done) => request(`/entities/${id}/offboarding`, { method: 'PATCH', body: JSON.stringify({ key, done }) }),
+  productSearch: (q) => request(`/product-search?q=${encodeURIComponent(q)}`),
+  productSuggestions: () => request('/product-search/suggestions'),
   listIntegrations: () => request('/integrations'),
   setSlack: (data) => request('/integrations/slack', { method: 'PUT', body: JSON.stringify(data) }),
   setJira: (data) => request('/integrations/jira', { method: 'PUT', body: JSON.stringify(data) }),

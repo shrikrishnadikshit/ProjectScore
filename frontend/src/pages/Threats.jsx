@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.js'
+import ProductSearch from '../components/ProductSearch.jsx'
 
 const LEVEL = { low: 'Low', medium: 'Medium', high: 'High', critical: 'Very high' }
 const STATUS = { valid: 'Valid', expiring: 'Expiring soon', expired: 'Expired', no_expiry: 'No expiry date' }
@@ -37,6 +38,8 @@ export default function Threats() {
           <p className="muted">Newly announced vulnerabilities that attackers are already using, and which of your vendors they affect. Also: vendors seen on the dark web, which vendors are most exposed to ransomware, and whose certificates are lapsing.</p>
         </div>
       </div>
+
+      <ProductSearch />
 
       <section className="card table-card">
         <div className="section-head">
