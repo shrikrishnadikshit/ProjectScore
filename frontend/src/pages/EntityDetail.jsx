@@ -183,7 +183,7 @@ export default function EntityDetail() {
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
                       <td><span className={`prio prio-${f.priority}`} title={f.asset_value ? `${f.asset_value}-value system` : 'system importance not yet known'}>P{f.priority}</span></td>
-                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} certin={entity.certin} />{(f.attack?.length > 0 || f.standards?.cwe?.length > 0 || f.standards?.owasp) && <div className="chips" style={{ marginTop: 4 }}>
+                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} certin={entity.certin} intel={entity.advisories} />{(f.attack?.length > 0 || f.standards?.cwe?.length > 0 || f.standards?.owasp) && <div className="chips" style={{ marginTop: 4 }}>
                         {f.attack?.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}
                         {f.standards?.cwe.map((c) => <a key={c.id} className="chip small" href={c.url} target="_blank" rel="noreferrer" title={c.name}>{c.id}</a>)}
                         {f.standards?.owasp && <a className="chip small" href={f.standards.owasp.url} target="_blank" rel="noreferrer" title="OWASP Top 10">{f.standards.owasp.name}</a>}
@@ -318,7 +318,7 @@ function cvssClass(score) {
   return score == null ? 'none' : score >= 9 ? 'critical' : score >= 7 ? 'high' : score >= 4 ? 'medium' : 'low'
 }
 
-function CveList({ ids, info, certin }) {
+function CveList({ ids, info, certin, intel }) {
   if (!ids?.length) return null
   const sorted = [...ids].sort((a, b) => (info?.[b]?.cvss ?? -1) - (info?.[a]?.cvss ?? -1))
   return (
@@ -333,10 +333,27 @@ function CveList({ ids, info, certin }) {
               {c.epss != null && <span className="muted" title="EPSS: chance of exploitation in the next 30 days">EPSS {(c.epss * 100).toFixed(c.epss < 0.01 ? 2 : 0)}%</span>}
             </> : <span className="muted">score pending</span>}
             {certin?.[id]?.map((n) => <a key={n.code} className="chip small" href={n.url} target="_blank" rel="noreferrer" title="CERT-In vulnerability note">{n.code}</a>)}
+            <CveIntel x={intel?.[id]} />
           </span>
         )
       })}
       {ids.length > 8 && <span className="muted small">and {ids.length - 8} more</span>}
     </div>
   )
+}
+
+function CveIntel({ x }) {
+  if (!x) return null
+  const s = x.sightings?.counts || {}
+  const exploited = x.ssvc?.exploitation === 'active' || s.exploited > 0
+  const poc = x.ssvc?.exploitation === 'poc' || s['published-proof-of-concept'] > 0
+  const fix = x.github?.flatMap((g) => g.packages).find((p) => p.patched)
+  return <>
+    {exploited && <span className="chip small chip-danger" title={x.ssvc?.exploitation === 'active' ? 'CISA assessment (SSVC): exploitation is active' : `Exploitation reported ${s.exploited} times (CIRCL Vulnerability-Lookup)`}>Exploited</span>}
+    {!exploited && poc && <span className="chip small chip-warn" title="A proof-of-concept exploit is public">Public exploit</span>}
+    {x.ssvc?.automatable === 'yes' && <span className="chip small" title="CISA assessment (SSVC): attacks can be automated">Automatable</span>}
+    {x.github?.slice(0, 2).map((g) => <a key={g.id} className="chip small" href={g.url} target="_blank" rel="noreferrer" title={g.summary}>{g.id}</a>)}
+    {x.cisa?.map((a) => <a key={a.url} className="chip small" href={a.url} target="_blank" rel="noreferrer" title={a.title}>{a.code || 'CISA advisory'}</a>)}
+    {fix && <span className="small muted" title={`${fix.name} ${fix.vulnerable || ''}`}>fixed in {fix.name.split(':').pop()} {fix.patched}</span>}
+  </>
 }

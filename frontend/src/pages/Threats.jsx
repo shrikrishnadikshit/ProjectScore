@@ -13,8 +13,13 @@ export default function Threats() {
   const [dark, setDark] = useState(null)
   const [cert, setCert] = useState(null)
   const [certMine, setCertMine] = useState(false)
+  const [cisa, setCisa] = useState(null)
+  const [cisaMine, setCisaMine] = useState(false)
+  const [sources, setSources] = useState([])
   const [onlyMine, setOnlyMine] = useState(true)
   const [onlyAi, setOnlyAi] = useState(false)
+  useEffect(() => { api.cisaAdvisories(days).then(setCisa).catch(() => setCisa(null)) }, [days])
+  useEffect(() => { api.advisorySources().then((d) => setSources(d.sources)).catch(() => {}) }, [])
   useEffect(() => { api.certin(days).then(setCert).catch(() => setCert(null)) }, [days])
   useEffect(() => { api.threatEvents(days).then(setEvents).catch(() => setEvents({ events: [], catalogue_loaded: false })) }, [days])
   useEffect(() => { api.portfolioRansomware().then(setRsi).catch(() => {}); api.portfolioCertificates().then(setCerts).catch(() => {}); api.portfolioDarkWeb().then(setDark).catch(() => {}) }, [])
@@ -93,6 +98,43 @@ export default function Threats() {
               </table>
             </div>
           )}
+        </section>
+      )}
+
+      {cisa && (
+        <section className="card table-card">
+          <div className="section-head" style={{ padding: '20px 20px 0' }}>
+            <div>
+              <h2>CISA advisories</h2>
+              <p className="muted small">Cybersecurity and industrial control system (ICS) advisories from the US Cybersecurity and Infrastructure Security Agency, matched by CVE against what our scans saw at your vendors.</p>
+            </div>
+            <label className="check small"><input type="checkbox" checked={cisaMine} onChange={(e) => setCisaMine(e.target.checked)} />Only ones affecting my vendors</label>
+          </div>
+          {cisa.items.length === 0 ? <p className="muted pad">{cisa.error ? 'CISA could not be reached; we will try again shortly.' : 'Nothing published in this period yet, or still loading from CISA.'}</p> : (
+            <div className="table-scroll">
+              <table>
+                <thead><tr><th>Published</th><th>Advisory</th><th>Type</th><th>Affected vendors</th></tr></thead>
+                <tbody>
+                  {cisa.items.filter((i) => !cisaMine || i.affected.length).map((i) => (
+                    <tr key={i.url} className="static">
+                      <td className="small">{i.published}</td>
+                      <td><a href={i.url} target="_blank" rel="noreferrer" className="strong">{i.title}</a><div className="small mono">{i.code}{i.cves.length > 0 && ` · ${i.cves.slice(0, 4).join(', ')}${i.cve_count > 4 ? ` +${i.cve_count - 4}` : ''}`}</div></td>
+                      <td className="small">{i.kind === 'ics' ? 'ICS' : 'Cybersecurity'}</td>
+                      <td className="small">{i.affected.length === 0 ? <span className="muted">None</span> : i.affected.map((a) => <div key={a.entity_id}><Link to={`/entities/${a.entity_id}`}>{a.name}</Link></div>)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {sources.length > 0 && (
+        <section className="card">
+          <h2>Where this data comes from</h2>
+          <ul className="small">{sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.name}</a>: <span className="muted">{s.use}</span></li>)}</ul>
+          <p className="muted small">CVE records © The MITRE Corporation (CVE Program, CC BY 4.0). GitHub Advisory Database data is licensed under CC BY 4.0. NVD data is provided by NIST; this product uses NVD data but is not endorsed or certified by the NVD.</p>
         </section>
       )}
 

@@ -532,3 +532,31 @@ class OrgIntegration(Base):
     enabled: Mapped[bool] = mapped_column(default=True)
     last_error: Mapped[str | None] = mapped_column(String(500))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CveIntel(Base):
+    """Extra facts about a CVE from open sources: the official CVE record (CVE.org, with CISA's exploitation
+    assessment), GitHub Security Advisories, and CIRCL Vulnerability-Lookup sightings."""
+
+    __tablename__ = "cve_intel"
+
+    cve_id: Mapped[str] = mapped_column(String(30), primary_key=True)
+    record: Mapped[dict] = mapped_column(JSON, default=dict)  # CVE.org: assigner, title, products, CISA SSVC
+    github: Mapped[list] = mapped_column(JSON, default=list)  # GHSA ids, severity, packages, patched versions
+    sightings: Mapped[dict] = mapped_column(JSON, default=dict)  # CIRCL: counts by type
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CisaAdvisory(Base):
+    """A CISA cybersecurity or ICS advisory from its public RSS feeds (US Government work, free to reuse)."""
+
+    __tablename__ = "cisa_advisories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    url: Mapped[str] = mapped_column(String(500), unique=True, index=True)
+    code: Mapped[str | None] = mapped_column(String(40), index=True)  # e.g. ICSA-26-301-01, AA26-120A
+    kind: Mapped[str] = mapped_column(String(10))  # ics, general
+    title: Mapped[str] = mapped_column(String(400))
+    published: Mapped[date | None] = mapped_column(Date)
+    cves: Mapped[list] = mapped_column(JSON, default=list)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

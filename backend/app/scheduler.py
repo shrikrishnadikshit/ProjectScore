@@ -90,6 +90,12 @@ def _loop() -> None:
         except Exception:
             logger.exception("CERT-In refresh failed")
         try:
+            from .advisories import refresh_async as cisa_refresh
+
+            cisa_refresh()
+        except Exception:
+            logger.exception("CISA advisory refresh failed")
+        try:
             from .onboarding import review_reminders
 
             session = db.SessionLocal()

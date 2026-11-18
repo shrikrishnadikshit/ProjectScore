@@ -170,8 +170,12 @@ def scan_entity(session: Session, entity: Entity, collector=run_collectors,
     session.commit()
     from . import cves as cve_data
 
-    cve_data.enrich_async(cve_data.cves_in(session.scalars(
-        select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open")).all()))
+    found_cves = cve_data.cves_in(session.scalars(
+        select(Finding).where(Finding.entity_id == entity.id, Finding.status == "open")).all())
+    cve_data.enrich_async(found_cves)
+    from . import advisories
+
+    advisories.enrich_async(found_cves)
     from .assets import refresh_after_scan as refresh_assets
     from .vendors import refresh_after_scan
 

@@ -29,7 +29,7 @@ from .incidents import router as incidents_router
 from .remediation import router as remediation_router
 from .advisory import router as advisory_router
 from .attack import techniques as attack_techniques
-from . import account, ai, assets, integrations, onboarding, brandprotect, certin, darkweb, standards, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
+from . import account, advisories, ai, assets, integrations, onboarding, brandprotect, certin, darkweb, standards, attackpaths, certificates, orgsettings, policy, codereview, ransomware, threatevents, vendors, vendorshare
 from .active import fail_interrupted_scans, router as active_router, update_templates_async
 from .optout import is_opted_out, router as optout_router
 from .users_api import router as users_router
@@ -339,6 +339,7 @@ def get_entity(entity_id: int, user: User = Depends(auth.current_user),
     open_findings = session.scalars(select(Finding).where(Finding.entity_id == entity_id, Finding.status == "open")).all()
     out["cves"] = cve_data.lookup(session, cve_data.cves_in(open_findings))
     out["certin"] = certin.by_cve(session, list(cve_data.cves_in(open_findings)))
+    out["advisories"] = advisories.lookup(session, cve_data.cves_in(open_findings))
 
     out["patching"] = summary(session.scalars(select(Finding).where(Finding.entity_id == entity_id)).all())
     return out
@@ -441,6 +442,7 @@ app.include_router(reputation.router)
 app.include_router(certin.router)
 app.include_router(onboarding.router)
 app.include_router(integrations.router)
+app.include_router(advisories.router)
 
 # Serve the built web app (frontend/dist) from the same server in production.
 DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"

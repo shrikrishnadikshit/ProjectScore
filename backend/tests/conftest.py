@@ -15,6 +15,7 @@ os.environ["IMPERSONATION_CHECK"] = "off"
 os.environ["BRAND_WATCH"] = "off"
 os.environ["CERTIN_FEED"] = "off"
 os.environ["INTEGRATIONS"] = "off"
+os.environ["ADVISORY_FEEDS"] = "off"
 
 import pytest  # noqa: E402
 
