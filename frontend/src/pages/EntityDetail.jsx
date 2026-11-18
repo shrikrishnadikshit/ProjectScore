@@ -183,7 +183,7 @@ export default function EntityDetail() {
                     <tr className="static">
                       <td><span className={`sev sev-${f.severity}`}>{f.severity}</span></td>
                       <td><span className={`prio prio-${f.priority}`} title={f.asset_value ? `${f.asset_value}-value system` : 'system importance not yet known'}>P{f.priority}</span></td>
-                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} />{(f.attack?.length > 0 || f.standards?.cwe?.length > 0 || f.standards?.owasp) && <div className="chips" style={{ marginTop: 4 }}>
+                      <td>{f.title}<CveList ids={f.evidence?.cves} info={entity.cves} certin={entity.certin} />{(f.attack?.length > 0 || f.standards?.cwe?.length > 0 || f.standards?.owasp) && <div className="chips" style={{ marginTop: 4 }}>
                         {f.attack?.map((t) => <a key={t.id} className="chip small" href={t.url} target="_blank" rel="noreferrer" title={`MITRE ATT&CK ${t.id}`}>{t.id} {t.name}</a>)}
                         {f.standards?.cwe.map((c) => <a key={c.id} className="chip small" href={c.url} target="_blank" rel="noreferrer" title={c.name}>{c.id}</a>)}
                         {f.standards?.owasp && <a className="chip small" href={f.standards.owasp.url} target="_blank" rel="noreferrer" title="OWASP Top 10">{f.standards.owasp.name}</a>}
@@ -318,7 +318,7 @@ function cvssClass(score) {
   return score == null ? 'none' : score >= 9 ? 'critical' : score >= 7 ? 'high' : score >= 4 ? 'medium' : 'low'
 }
 
-function CveList({ ids, info }) {
+function CveList({ ids, info, certin }) {
   if (!ids?.length) return null
   const sorted = [...ids].sort((a, b) => (info?.[b]?.cvss ?? -1) - (info?.[a]?.cvss ?? -1))
   return (
@@ -332,6 +332,7 @@ function CveList({ ids, info }) {
               <span className={`cvss cvss-${cvssClass(c.cvss)}`} title={c.vector || ''}>CVSS {c.cvss ?? 'n/a'}</span>
               {c.epss != null && <span className="muted" title="EPSS: chance of exploitation in the next 30 days">EPSS {(c.epss * 100).toFixed(c.epss < 0.01 ? 2 : 0)}%</span>}
             </> : <span className="muted">score pending</span>}
+            {certin?.[id]?.map((n) => <a key={n.code} className="chip small" href={n.url} target="_blank" rel="noreferrer" title="CERT-In vulnerability note">{n.code}</a>)}
           </span>
         )
       })}

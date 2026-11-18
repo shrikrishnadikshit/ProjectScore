@@ -83,6 +83,12 @@ def _loop() -> None:
                 session.close()
         except Exception:
             logger.exception("certificate reminders failed")
+        try:
+            from .certin import refresh_async
+
+            refresh_async()
+        except Exception:
+            logger.exception("CERT-In refresh failed")
 
 
 def start() -> None:

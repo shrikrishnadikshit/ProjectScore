@@ -464,3 +464,20 @@ class BrandWatch(Base):
     news: Mapped[list] = mapped_column(JSON, default=list)
     social: Mapped[list] = mapped_column(JSON, default=list)
     checked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class CertInItem(Base):
+    """A CERT-In advisory (CIAD) or vulnerability note (CIVN): identifiers and facts only, with a link to the full text."""
+
+    __tablename__ = "certin_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    kind: Mapped[str] = mapped_column(String(10))  # advisory, note
+    title: Mapped[str] = mapped_column(String(300))
+    issued: Mapped[date | None] = mapped_column(Date)
+    severity: Mapped[str | None] = mapped_column(String(20))
+    cves: Mapped[list] = mapped_column(JSON, default=list)
+    products: Mapped[list] = mapped_column(JSON, default=list)
+    detailed: Mapped[bool] = mapped_column(default=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

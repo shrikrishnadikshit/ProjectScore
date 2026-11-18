@@ -13,6 +13,7 @@ os.environ["INFOSTEALER_FEED"] = "off"
 os.environ["RANSOMWARE_LIVE"] = "off"
 os.environ["IMPERSONATION_CHECK"] = "off"
 os.environ["BRAND_WATCH"] = "off"
+os.environ["CERTIN_FEED"] = "off"
 
 import pytest  # noqa: E402
 

@@ -210,6 +210,17 @@ DEFAULT = {"why": "This weakens your external security posture.", "fix": ["Revie
            "effort": "moderate", "owner": "IT team"}
 
 
+CERTIN_GUIDELINES = ("CERT-In security guidelines", "https://www.cert-in.org.in/s2cMainServlet?pageid=GUIDLNVIEW01")
+# Specific CERT-In guidance documents, by finding code prefix; everything else links to the guidelines index.
+CERTIN_DOCS = [("ai_service_exposed", ("CERT-In AI Security Auditing Guidelines",
+                                       "https://www.cert-in.org.in/PDF/AI_Security_Auditing_Guidelines.pdf"))]
+
+
+def certin_reference(code: str) -> dict:
+    label, url = next((doc for p, doc in CERTIN_DOCS if code.startswith(p)), CERTIN_GUIDELINES)
+    return {"label": label, "url": url}
+
+
 def guidance(code: str) -> dict:
     if code in GUIDE:
         return GUIDE[code]
@@ -244,7 +255,8 @@ def plan(findings: list, coverage: dict[str, int]) -> dict:
         g = guidance(code)
         items.append({"code": code, "title": fs[0].title, "severity": fs[0].severity, "risk_factor": fs[0].risk_factor,
                       "assets": sorted({f.asset_value for f in fs}), "finding_ids": sorted(ids),
-                      "points": after - base, "why": g["why"], "fix": g["fix"], "effort": g["effort"], "owner": g["owner"]})
+                      "points": after - base, "why": g["why"], "fix": g["fix"], "effort": g["effort"], "owner": g["owner"],
+                      "certin": certin_reference(code)})
     items.sort(key=lambda i: (-i["points"], EFFORT_ORDER[i["effort"]], i["code"]))
     open_ids = {f.id for f in findings if f.status == "open"}
     quick = {i for it in items if it["effort"] == "quick" for i in it["finding_ids"]}

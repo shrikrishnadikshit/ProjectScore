@@ -70,6 +70,7 @@ export default function FixPlan({ entityId, version }) {
                 <p><strong>Why it matters:</strong> {it.why}</p>
                 <p><strong>How to fix</strong> <span className="muted">(usually {it.owner})</span>:</p>
                 <ol>{it.fix.map((s, i) => <li key={i}>{s}</li>)}</ol>
+                {it.certin && <p className="small">Guidance: <a href={it.certin.url} target="_blank" rel="noreferrer">{it.certin.label}</a></p>}
                 <p className="muted">Affected: <span className="mono">{it.assets.slice(0, 10).join(', ')}{it.assets.length > 10 ? ` and ${it.assets.length - 10} more` : ''}</span></p>
               </div>
             )}

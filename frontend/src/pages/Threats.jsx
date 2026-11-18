@@ -11,8 +11,11 @@ export default function Threats() {
   const [rsi, setRsi] = useState([])
   const [certs, setCerts] = useState(null)
   const [dark, setDark] = useState(null)
+  const [cert, setCert] = useState(null)
+  const [certMine, setCertMine] = useState(false)
   const [onlyMine, setOnlyMine] = useState(true)
   const [onlyAi, setOnlyAi] = useState(false)
+  useEffect(() => { api.certin(days).then(setCert).catch(() => setCert(null)) }, [days])
   useEffect(() => { api.threatEvents(days).then(setEvents).catch(() => setEvents({ events: [], catalogue_loaded: false })) }, [days])
   useEffect(() => { api.portfolioRansomware().then(setRsi).catch(() => {}); api.portfolioCertificates().then(setCerts).catch(() => {}); api.portfolioDarkWeb().then(setDark).catch(() => {}) }, [])
   const shown = events ? events.events.filter((e) => !onlyMine || e.affected.length).filter((e) => !onlyAi || e.ai) : []
@@ -63,6 +66,35 @@ export default function Threats() {
           </div>
         )}
       </section>
+
+      {cert && cert.enabled && (
+        <section className="card table-card">
+          <div className="section-head" style={{ padding: '20px 20px 0' }}>
+            <div>
+              <h2>CERT-In advisories and vulnerability notes</h2>
+              <p className="muted small">From the Indian Computer Emergency Response Team, matched against what our scans saw at your vendors. Source: CERT-In; open each item for the full text. More: <a href={cert.guidelines_url} target="_blank" rel="noreferrer">CERT-In guidelines</a>.</p>
+            </div>
+            <label className="check small"><input type="checkbox" checked={certMine} onChange={(e) => setCertMine(e.target.checked)} />Only ones affecting my vendors</label>
+          </div>
+          {cert.items.length === 0 ? <p className="muted pad">{cert.last_refresh ? 'Nothing published in this period.' : 'Loading from CERT-In; check back in a few minutes.'}</p> : (
+            <div className="table-scroll">
+              <table>
+                <thead><tr><th>Issued</th><th>Advisory or note</th><th>Severity</th><th>Affected vendors</th></tr></thead>
+                <tbody>
+                  {cert.items.filter((i) => !certMine || i.affected.length).map((i) => (
+                    <tr key={i.code} className="static">
+                      <td className="small">{i.issued}</td>
+                      <td><a href={i.url} target="_blank" rel="noreferrer" className="strong">{i.title}</a><div className="small mono">{i.code}{i.cves.length > 0 && ` · ${i.cves.slice(0, 4).join(', ')}${i.cves.length > 4 ? ` +${i.cves.length - 4}` : ''}`}</div></td>
+                      <td>{i.severity ? <span className={`sev sev-${i.severity === 'critical' ? 'critical' : i.severity === 'high' ? 'high' : i.severity === 'medium' ? 'medium' : 'low'}`}>{i.severity}</span> : <span className="muted small">{i.kind === 'advisory' ? 'advisory' : '—'}</span>}</td>
+                      <td className="small">{i.affected.length === 0 ? <span className="muted">None</span> : i.affected.map((a) => <div key={a.id}><Link to={`/entities/${a.id}`}>{a.name}</Link> <span className="muted">({a.match})</span></div>)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
 
       {dark && (
         <section className="card table-card">

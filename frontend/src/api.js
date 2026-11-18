@@ -75,6 +75,7 @@ export const api = {
   rescanVendorShare: (token) => request(`/public/vendor-share/${encodeURIComponent(token)}/rescan`, { method: 'POST' }),
   entityRansomware: (id) => request(`/entities/${id}/ransomware`),
   portfolioRansomware: () => request('/ransomware'),
+  certin: (days = 30) => request(`/certin?days=${days}`),
   threatEvents: (days = 30) => request(`/threat-events?days=${days}`),
   listCertificates: (id) => request(`/entities/${id}/certificates`),
   addCertificate: (id, data) => request(`/entities/${id}/certificates`, { method: 'POST', body: JSON.stringify(data) }),
