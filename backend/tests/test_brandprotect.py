@@ -52,11 +52,12 @@ def test_impersonation_check():
 
 def test_apps_news_social():
     apps = bp.classify_apps([
-        {"trackName": "Acme Mobile Banking", "sellerName": "Acme Bank Limited", "sellerUrl": "https://www.acme.com/app", "trackViewUrl": "u1"},
+        {"trackName": "Acme Mobile Banking", "sellerName": "Acme Bank Limited", "sellerUrl": "https://www.acme.com/", "trackViewUrl": "u1"},
         {"trackName": "Acme Bank Login Helper", "sellerName": "Fast Apps LLC", "trackViewUrl": "u2"},
         {"trackName": "Recipe Box", "sellerName": "Cook Co"},
+        {"trackName": "Acme Viewer", "sellerName": "Indie Dev", "sellerUrl": "https://acme.com/indiedev/viewer", "trackViewUrl": "u3"},
     ], "Acme Bank Ltd", "acme.com")
-    assert [(a["name"], a["official"]) for a in apps] == [("Acme Bank Login Helper", False), ("Acme Mobile Banking", True)]
+    assert [(a["name"], a["official"]) for a in apps] == [("Acme Bank Login Helper", False), ("Acme Viewer", False), ("Acme Mobile Banking", True)]
     news = bp.classify_news([
         {"title": "Acme Bank hit by ransomware attack", "url": "n1", "domain": "news.example", "seendate": "20261101T101500Z"},
         {"title": "Acme Bank hit by ransomware attack", "url": "n1b", "domain": "copy.example", "seendate": "20261101T111500Z"},
