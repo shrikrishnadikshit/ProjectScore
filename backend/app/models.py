@@ -481,3 +481,54 @@ class CertInItem(Base):
     products: Mapped[list] = mapped_column(JSON, default=list)
     detailed: Mapped[bool] = mapped_column(default=False)
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class VendorOnboarding(Base):
+    """A vendor's path from intake to approval: business context, inherent risk, tier, decision and next review."""
+
+    __tablename__ = "vendor_onboardings"
+    __table_args__ = (UniqueConstraint("org_id", "entity_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entities.id", ondelete="CASCADE"), index=True)
+    stage: Mapped[str] = mapped_column(String(20), default="intake")  # intake, assessment, review, approved, conditional, rejected
+    intake: Mapped[dict] = mapped_column(JSON, default=dict)
+    inherent_score: Mapped[int | None] = mapped_column(Integer)
+    tier: Mapped[int | None] = mapped_column(Integer)
+    owner_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    decision_note: Mapped[str | None] = mapped_column(String(2000))
+    next_review: Mapped[date | None] = mapped_column(Date)
+    history: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class QuestionnaireProfile(Base):
+    """Which questions a smart questionnaire asks, why, and the AI-drafted answers from the vendor's documents."""
+
+    __tablename__ = "questionnaire_profiles"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    questionnaire_id: Mapped[int] = mapped_column(ForeignKey("questionnaires.id", ondelete="CASCADE"), unique=True, index=True)
+    question_ids: Mapped[list] = mapped_column(JSON, default=list)
+    reasons: Mapped[dict] = mapped_column(JSON, default=dict)
+    drafts: Mapped[dict] = mapped_column(JSON, default=dict)
+    documents: Mapped[list] = mapped_column(JSON, default=list)  # names and sizes only; files are not kept
+    ai_runs: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class OrgIntegration(Base):
+    """A connection to Slack or Jira for one organisation. Secrets are write-only through the API."""
+
+    __tablename__ = "org_integrations"
+    __table_args__ = (UniqueConstraint("org_id", "kind"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # slack, jira
+    config: Mapped[dict] = mapped_column(JSON, default=dict)
+    secret: Mapped[str | None] = mapped_column(String(500))
+    enabled: Mapped[bool] = mapped_column(default=True)
+    last_error: Mapped[str | None] = mapped_column(String(500))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

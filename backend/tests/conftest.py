@@ -14,6 +14,7 @@ os.environ["RANSOMWARE_LIVE"] = "off"
 os.environ["IMPERSONATION_CHECK"] = "off"
 os.environ["BRAND_WATCH"] = "off"
 os.environ["CERTIN_FEED"] = "off"
+os.environ["INTEGRATIONS"] = "off"
 
 import pytest  # noqa: E402
 

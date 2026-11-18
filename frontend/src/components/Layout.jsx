@@ -44,6 +44,7 @@ export default function Layout() {
           <NavLink to="/" end>Portfolio</NavLink>
           <NavLink to="/threats">Threats</NavLink>
           {reputation && <NavLink to="/reputation">Reputation</NavLink>}
+          <NavLink to="/onboarding">Onboarding</NavLink>
           <NavLink to="/policy">Policy</NavLink>
           <NavLink to="/advisory">Advisory</NavLink>
           <NavLink to="/alerts">Alerts{unread > 0 && <span className="nav-badge">{unread}</span>}</NavLink>

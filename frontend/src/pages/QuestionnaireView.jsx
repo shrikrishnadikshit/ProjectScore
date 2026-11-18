@@ -25,6 +25,8 @@ export default function QuestionnaireView() {
         <div>
           <h1>Questionnaire answers</h1>
           <p className="muted">From {q.recipient_name ? `${q.recipient_name}, ` : ''}{q.recipient_email} · submitted {new Date(q.submitted_at).toLocaleDateString()} · {q.score}% of controls in place</p>
+          {q.tailored && <p className="muted small">Tailored to this vendor's tier and business context: {q.total} questions.{q.documents?.length ? ` The vendor used AI to draft answers from ${q.documents.length} of its own document${q.documents.length > 1 ? 's' : ''} and confirmed each answer.` : ''}</p>}
+          {!q.tailored && q.documents?.length > 0 && <p className="muted small">The vendor used AI to draft answers from {q.documents.length} of its own document{q.documents.length > 1 ? 's' : ''} and confirmed each answer.</p>}
         </div>
       </div>
       {q.contradictions.length > 0 && (

@@ -12,6 +12,14 @@ export default function FixPlan({ entityId, version }) {
   const [services, setServices] = useState([])
   const [sent, setSent] = useState(false)
   const [error, setError] = useState(null)
+  const [jira, setJira] = useState(false)
+  const [tickets, setTickets] = useState({})
+  useEffect(() => { api.listIntegrations().then((d) => setJira(d.jira.connected && d.jira.enabled !== false)).catch(() => {}) }, [])
+  async function ticket(code) {
+    setTickets({ ...tickets, [code]: { busy: true } })
+    try { const r = await api.createJiraIssue(entityId, code); setTickets((t) => ({ ...t, [code]: r })) }
+    catch (e) { setTickets((t) => ({ ...t, [code]: { error: e.message } })) }
+  }
   useEffect(() => { api.remediationPlan(entityId).then(setPlan).catch(() => setPlan(null)) }, [entityId, version])
   useEffect(() => { if (helpForm) api.advisoryServices().then(setServices) }, [helpForm != null])
   if (!plan?.items?.length) return null
@@ -72,6 +80,10 @@ export default function FixPlan({ entityId, version }) {
                 <ol>{it.fix.map((s, i) => <li key={i}>{s}</li>)}</ol>
                 {it.certin && <p className="small">Guidance: <a href={it.certin.url} target="_blank" rel="noreferrer">{it.certin.label}</a></p>}
                 <p className="muted">Affected: <span className="mono">{it.assets.slice(0, 10).join(', ')}{it.assets.length > 10 ? ` and ${it.assets.length - 10} more` : ''}</span></p>
+                {jira && (tickets[it.code]?.key
+                  ? <p>Jira issue created: <a href={tickets[it.code].url} target="_blank" rel="noreferrer">{tickets[it.code].key}</a></p>
+                  : <p><button className="btn ghost" disabled={tickets[it.code]?.busy} onClick={() => ticket(it.code)}>Create Jira issue</button>
+                    {tickets[it.code]?.error && <span className="error"> {tickets[it.code].error}</span>}</p>)}
               </div>
             )}
           </div>

@@ -12,13 +12,13 @@ import secrets
 import threading
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from . import auth, db
-from .models import Finding, Questionnaire, User
+from .models import Finding, Questionnaire, QuestionnaireProfile, User, VendorOnboarding
 from .optout import _EMAIL_RE
 
 router = APIRouter(prefix="/api")
@@ -60,13 +60,25 @@ QUESTIONS: list[tuple[str, str, str, list[str]]] = [
 QUESTION_IDS = {q[0] for q in QUESTIONS}
 
 
-def template() -> list[dict]:
-    return [{"id": i, "section": s, "text": t} for i, s, t, _ in QUESTIONS]
+def template(ids: list[str] | None = None) -> list[dict]:
+    keep = set(ids) if ids is not None else QUESTION_IDS
+    return [{"id": i, "section": s, "text": t} for i, s, t, _ in QUESTIONS if i in keep]
 
 
-def score_answers(answers: dict) -> int | None:
+def _profile(session: Session, q: Questionnaire) -> QuestionnaireProfile | None:
+    return session.scalars(select(QuestionnaireProfile).where(QuestionnaireProfile.questionnaire_id == q.id)).first()
+
+
+def selected(session: Session, q: Questionnaire) -> list[str]:
+    """The question ids this questionnaire asks: a tailored set when it was sent after onboarding intake."""
+    p = _profile(session, q)
+    return [i for i in (p.question_ids or []) if i in QUESTION_IDS] if p and p.question_ids else [x[0] for x in QUESTIONS]
+
+
+def score_answers(answers: dict, ids: list[str] | None = None) -> int | None:
     points = {"yes": 1.0, "partial": 0.5, "no": 0.0}
-    rated = [points[a["answer"]] for a in answers.values() if a.get("answer") in points]
+    rated = [points[a["answer"]] for k, a in answers.items()
+             if a.get("answer") in points and (ids is None or k in ids)]
     return round(100 * sum(rated) / len(rated)) if rated else None
 
 
@@ -89,16 +101,21 @@ def _aware(dt: datetime) -> datetime:
 
 
 def _out(session: Session, q: Questionnaire, detail: bool = False) -> dict:
-    answers = q.answers or {}
+    ids = selected(session, q)
+    answers = {k: v for k, v in (q.answers or {}).items() if k in ids}
+    profile = _profile(session, q)
     out = {"id": q.id, "entity_id": q.entity_id, "recipient_email": q.recipient_email, "recipient_name": q.recipient_name,
            "status": q.status, "created_at": _aware(q.created_at).isoformat(),
            "submitted_at": _aware(q.submitted_at).isoformat() if q.submitted_at else None,
-           "answered": sum(1 for a in answers.values() if a.get("answer")), "total": len(QUESTIONS),
+           "answered": sum(1 for a in answers.values() if a.get("answer")), "total": len(ids),
+           "tailored": bool(profile and profile.question_ids), "ai_runs": profile.ai_runs if profile else 0,
            "score": score_answers(answers) if q.status in ("submitted", "reviewed") else None,
            "link_path": f"/q/{q.token}"}
     if detail:
         findings = session.scalars(select(Finding).where(Finding.entity_id == q.entity_id, Finding.status == "open")).all()
-        out["questions"] = template()
+        out["questions"] = template(ids)
+        out["reasons"] = (profile.reasons or {}) if profile else {}
+        out["documents"] = (profile.documents or []) if profile else []
         out["answers"] = answers
         out["reviewer_note"] = q.reviewer_note
         out["contradictions"] = contradictions(answers, findings) if q.status in ("submitted", "reviewed") else []
@@ -118,14 +135,14 @@ class SendIn(BaseModel):
         return v
 
 
-def _email_link(q: Questionnaire, entity_name: str, org_name: str) -> None:
+def _email_link(q: Questionnaire, entity_name: str, org_name: str, count: int | None = None) -> None:
     if not (os.environ.get("RESEND_API_KEY") and os.environ.get("ALERT_EMAIL_FROM")):
         return
     import httpx
 
     base = os.environ.get("APP_URL", "https://projectscore.onrender.com").rstrip("/")
     body = (f"{org_name} has asked {entity_name} to complete a short security questionnaire "
-            f"({len(QUESTIONS)} questions, about 15 minutes).\n\nOpen it here: {base}/q/{q.token}\n\n"
+            f"({count or len(QUESTIONS)} questions, about 15 minutes).\n\nOpen it here: {base}/q/{q.token}\n\n"
             "You can save your answers and come back later. The link expires in 60 days.")
     try:
         httpx.post("https://api.resend.com/emails", timeout=20.0,
@@ -146,8 +163,18 @@ def send_questionnaire(entity_id: int, body: SendIn, user: User = Depends(auth.r
                       recipient_email=body.recipient_email, recipient_name=(body.recipient_name or "").strip() or None,
                       created_by=user.id, answers={})
     session.add(q)
+    session.flush()
+    count = None
+    ob = session.scalars(select(VendorOnboarding).where(VendorOnboarding.org_id == user.org_id,
+                                                        VendorOnboarding.entity_id == entity_id)).first()
+    if ob and ob.tier:
+        from .smartq import select_questions
+
+        ids, reasons = select_questions([x[0] for x in QUESTIONS], ob.tier, ob.intake)
+        session.add(QuestionnaireProfile(questionnaire_id=q.id, question_ids=ids, reasons=reasons, drafts={}, documents=[]))
+        count = len(ids)
     session.commit()
-    threading.Thread(target=_email_link, args=(q, item.entity.name, user.org.name), daemon=True).start()
+    threading.Thread(target=_email_link, args=(q, item.entity.name, user.org.name, count), daemon=True).start()
     return _out(session, q)
 
 
@@ -204,8 +231,14 @@ def public_get(token: str, session: Session = Depends(db.get_session)) -> dict:
     from .models import Entity, Organization
 
     entity, org = session.get(Entity, q.entity_id), session.get(Organization, q.org_id)
+    from .smartq import MAX_RUNS, ai_enabled
+
+    profile = _profile(session, q)
+    runs = profile.ai_runs if profile else 0
     return {"company": entity.name if entity else None, "requested_by": org.name if org else None,
-            "status": q.status, "questions": template(), "answers": q.answers or {}}
+            "status": q.status, "questions": template(selected(session, q)), "answers": q.answers or {},
+            "drafts": (profile.drafts or {}) if profile else {}, "documents": (profile.documents or []) if profile else [],
+            "ai": {"available": ai_enabled(), "runs_left": max(0, MAX_RUNS - runs)}}
 
 
 class AnswersIn(BaseModel):
@@ -218,14 +251,15 @@ def public_save(token: str, body: AnswersIn, session: Session = Depends(db.get_s
     q = _by_token(session, token)
     if q.status in ("submitted", "reviewed"):
         raise HTTPException(409, "this questionnaire has already been submitted")
+    ids = selected(session, q)
     clean = {}
     for qid, a in body.answers.items():
-        if qid not in QUESTION_IDS:
+        if qid not in ids:
             continue
         answer = a.get("answer")
         clean[qid] = {"answer": answer if answer in ANSWERS else None,
                       "comment": str(a.get("comment") or "")[:2000]}
-    if body.submit and sum(1 for a in clean.values() if a["answer"]) < len(QUESTIONS):
+    if body.submit and sum(1 for a in clean.values() if a["answer"]) < len(ids):
         raise HTTPException(422, "please answer every question before submitting (use N/A where it does not apply)")
     q.answers = clean
     q.status = "submitted" if body.submit else "in_progress"
@@ -233,3 +267,55 @@ def public_save(token: str, body: AnswersIn, session: Session = Depends(db.get_s
         q.submitted_at = datetime.now(timezone.utc)
     session.commit()
     return {"status": q.status}
+
+
+@router.post("/public/questionnaire/{token}/documents")
+async def public_documents(token: str, files: list[UploadFile] = File(...), session: Session = Depends(db.get_session)) -> dict:
+    """Draft answers from the vendor's own documents with AI. The files are read once and not stored."""
+    from fastapi.concurrency import run_in_threadpool
+
+    from . import smartq
+
+    q = _by_token(session, token)
+    if q.status in ("submitted", "reviewed"):
+        raise HTTPException(409, "this questionnaire has already been submitted")
+    if not smartq.ai_enabled():
+        raise HTTPException(503, "AI drafting is not switched on for this service")
+    if not files or len(files) > smartq.MAX_FILES:
+        raise HTTPException(422, f"upload 1 to {smartq.MAX_FILES} files")
+    profile = _profile(session, q)
+    if profile is None:
+        profile = QuestionnaireProfile(questionnaire_id=q.id, question_ids=[], reasons={}, drafts={}, documents=[], ai_runs=0)
+        session.add(profile)
+    if (profile.ai_runs or 0) >= smartq.MAX_RUNS:
+        raise HTTPException(429, "AI drafting has been used the maximum number of times for this questionnaire")
+    loaded = []
+    for f in files:
+        data = await f.read(smartq.MAX_BYTES + 1)
+        name = (f.filename or "document")[:200]
+        if len(data) > smartq.MAX_BYTES:
+            raise HTTPException(413, f"{name} is larger than 10 MB")
+        if data[:5] == b"%PDF-":
+            media = "application/pdf"
+        elif name.lower().endswith((".txt", ".md")):
+            try:
+                data.decode("utf-8")
+            except UnicodeDecodeError:
+                raise HTTPException(422, f"{name} is not a readable text file")
+            media = "text/plain"
+        else:
+            raise HTTPException(422, f"{name}: only PDF and plain text files can be read")
+        loaded.append((name, media, data))
+    profile.ai_runs = (profile.ai_runs or 0) + 1
+    session.commit()
+    try:
+        drafts = await run_in_threadpool(smartq.draft_answers, template(selected(session, q)), loaded)
+    except Exception:  # noqa: BLE001 - logged; the vendor sees a retryable failure
+        import logging
+
+        logging.getLogger(__name__).exception("questionnaire AI drafting failed")
+        raise HTTPException(502, "could not draft answers from these documents, please try again later")
+    profile.drafts = {**(profile.drafts or {}), **drafts}
+    profile.documents = (profile.documents or []) + [{"name": n, "size": len(d)} for n, _, d in loaded]
+    session.commit()
+    return {"drafts": profile.drafts, "documents": profile.documents, "runs_left": max(0, smartq.MAX_RUNS - profile.ai_runs)}

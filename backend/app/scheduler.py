@@ -89,6 +89,16 @@ def _loop() -> None:
             refresh_async()
         except Exception:
             logger.exception("CERT-In refresh failed")
+        try:
+            from .onboarding import review_reminders
+
+            session = db.SessionLocal()
+            try:
+                review_reminders(session)
+            finally:
+                session.close()
+        except Exception:
+            logger.exception("reassessment reminders failed")
 
 
 def start() -> None:

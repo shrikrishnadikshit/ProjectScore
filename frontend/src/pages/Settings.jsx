@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { api } from '../api.js'
+import Integrations from '../components/Integrations.jsx'
 
 let regionNames
 try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }) } catch { regionNames = null }
@@ -57,6 +58,7 @@ export default function Settings() {
           {isAdmin ? <div className="actions"><button className="btn primary">Save</button></div> : <p className="muted small">Only admins can change these settings.</p>}
         </form>
       </section>
+      <Integrations isAdmin={isAdmin} />
     </>
   )
 }

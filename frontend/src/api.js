@@ -141,6 +141,25 @@ export const api = {
   googleReviews: (id) => request(`/reputation/brands/${id}/google`),
   searchResults: (id) => request(`/reputation/brands/${id}/search`),
   takeSearch: (id) => request(`/reputation/brands/${id}/search`, { method: 'POST' }),
+  listOnboarding: () => request('/onboarding'),
+  startOnboarding: (entity_id, intake) => request('/onboarding', { method: 'POST', body: JSON.stringify({ entity_id, intake }) }),
+  getOnboarding: (id) => request(`/onboarding/${id}`),
+  saveIntake: (id, intake) => request(`/onboarding/${id}/intake`, { method: 'PUT', body: JSON.stringify({ intake }) }),
+  onboardingAction: (id, action, note, tier) => request(`/onboarding/${id}/action`, { method: 'POST', body: JSON.stringify({ action, note, tier }) }),
+  listIntegrations: () => request('/integrations'),
+  setSlack: (data) => request('/integrations/slack', { method: 'PUT', body: JSON.stringify(data) }),
+  setJira: (data) => request('/integrations/jira', { method: 'PUT', body: JSON.stringify(data) }),
+  removeIntegration: (kind) => request(`/integrations/${kind}`, { method: 'DELETE' }),
+  testSlack: () => request('/integrations/slack/test', { method: 'POST' }),
+  createJiraIssue: (entity_id, code) => request('/integrations/jira/issue', { method: 'POST', body: JSON.stringify({ entity_id, code }) }),
+  draftFromDocuments: async (token, files) => {
+    const form = new FormData()
+    for (const f of files) form.append('files', f)
+    const res = await fetch(`/api/public/questionnaire/${encodeURIComponent(token)}/documents`, { method: 'POST', body: form })
+    const body = await res.json().catch(() => null)
+    if (!res.ok) throw new Error(body?.detail || `Upload failed (${res.status})`)
+    return body
+  },
   publicDispute: (data) => request('/public/disputes', { method: 'POST', body: JSON.stringify(data) }),
 }
 
