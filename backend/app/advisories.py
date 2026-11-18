@@ -139,6 +139,10 @@ def parse_sightings(data) -> dict:
             "latest": latest[:10] if latest else None}
 
 
+def _kind(code: str | None, url: str, default: str) -> str:
+    return "ics" if (code or "").startswith("ICS") or "/ics-" in url else default
+
+
 def parse_feed(xml: str, kind: str) -> list[dict]:
     try:
         root = ElementTree.fromstring(xml)
@@ -157,8 +161,9 @@ def parse_feed(xml: str, kind: str) -> list[dict]:
             published = None
         code = CODE_RE.search(title + " " + link.upper())
         cves = sorted({c.upper() for c in CVE_RE.findall(title + " " + body)})
-        out.append({"url": link[:500], "title": title[:400], "kind": kind, "published": published,
-                    "code": code.group(1) if code else None, "cves": cves[:200]})
+        code_s = code.group(1) if code else None
+        out.append({"url": link[:500], "title": title[:400], "kind": _kind(code_s, link, kind), "published": published,
+                    "code": code_s, "cves": cves[:200]})
     return out
 
 
@@ -340,7 +345,7 @@ def advisories(days: int = 30, user: User = Depends(auth.current_user), session:
     out = []
     for a in rows:
         hit = sorted({e for c in a.cves or [] for e in seen.get(c, ())})
-        out.append({"code": a.code, "title": a.title, "url": a.url, "kind": a.kind,
+        out.append({"code": a.code, "title": a.title, "url": a.url, "kind": _kind(a.code, a.url, a.kind),
                     "published": a.published.isoformat() if a.published else None, "cves": (a.cves or [])[:20],
                     "cve_count": len(a.cves or []),
                     "affected": [{"entity_id": e, "name": names[e]} for e in hit]})
